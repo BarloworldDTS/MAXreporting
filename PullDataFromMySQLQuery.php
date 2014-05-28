@@ -155,7 +155,7 @@ class PullDataFromMySQLQuery {
 					throw new Exception("Correct fields where not found in file: " . $_inifile . ". Please make sure the following fields are available: dbdsn, dbuser, dbpwd");
 				}
 			} else {
-				$this->_errors[] = "Cannot find file: " . $_iniFile . ". Please create the file or that it exists.";
+				$this->_errors[] = "Cannot find file: " . $_inifile . ". Please create the file or that it exists.";
 			}
 		} catch (Exception $e) {
 			$this->_errors[] = $e->getMessage();
