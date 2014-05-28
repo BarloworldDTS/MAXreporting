@@ -4,11 +4,11 @@ error_reporting ( E_ALL );
 
 // : Includes
 
-require_once dirname ( __FILE__ ) . '/Classes/PHPExcel.php';
+include_once 'PHPUnit/Extensions/PHPExcel/Classes/PHPExcel.php';
 /**
  * PHPExcel_Writer_Excel2007
  */
-include dirname ( __FILE__ ) . '/Classes/PHPExcel/Writer/Excel2007.php';
+include 'PHPUnit/Extensions/PHPExcel/Classes/PHPExcel/Writer/Excel2007.php';
 /**
  * MySQL query pull and return data class
  */
@@ -29,6 +29,7 @@ class PullFandVContractData {
 	const DS = DIRECTORY_SEPARATOR;
 	
 	// : Variables
+	protected $_mode;
 	protected $_sqlfile = "fandvcontracts%Llinks.sql";
 	
 	// : Public functions
@@ -114,8 +115,20 @@ class PullFandVContractData {
 					case "numberOfDays": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "5")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
 					case "rate": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "6")->setValueExplicit($fornum, PHPExcel_Cell_DataType::TYPE_STRING); break;
 					case "buname": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "7")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
-					case "startDate": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "8")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
-					case "endDate": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "9")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
+					case "startDate":
+						if ($this->_mode != "create") {
+							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "8")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING);
+						} else {
+							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "8")->setValueExplicit(date("Y-m-d 00:00:00", strtotime("+1 month")), PHPExcel_Cell_DataType::TYPE_STRING);
+						}
+						break;
+					case "endDate":
+						if ($this->_mode != "create") {
+							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "9")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING);
+						} else {
+							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "9")->setValueExplicit(date("Y-m-d 00:00:00", strtotime("+1 month")), PHPExcel_Cell_DataType::TYPE_STRING);
+						}
+						break;
 					case "description": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "10")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
 					case "trucks": 
 						if (count($value2) != 0) {
@@ -140,8 +153,14 @@ class PullFandVContractData {
 						}
 						break;
 					case "rat": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "13")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
-					case "dpm": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "14")->setValueExplicit($fornum, PHPExcel_Cell_DataType::TYPE_STRING); break;
-					case "dpt": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "15")->setValueExplicit($fornum, PHPExcel_Cell_DataType::TYPE_STRING); break;
+					case "dpm":
+						$_cellvalue = strval(number_format((floatval($fornum) * 100), 0, "", ""));
+						$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "14")->setValueExplicit($_cellvalue, PHPExcel_Cell_DataType::TYPE_STRING);
+						break;
+					case "dpt":
+						$_cellvalue = strval(number_format((floatval($fornum) * 100), 0, "", ""));
+						$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "15")->setValueExplicit($_cellvalue, PHPExcel_Cell_DataType::TYPE_STRING);
+						break;
 					case "fc": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "16")->setValueExplicit($fornum, PHPExcel_Cell_DataType::TYPE_STRING); break;
 					case "fval": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "17")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
 					case "eek": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "18")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
@@ -183,6 +202,9 @@ class PullFandVContractData {
 	 * Class constructor
 	 */
 	public function __construct() {
+		
+		$_options = getopt("m:");
+		$this->_mode = $_options["m"];
 		$_excelFileName = (string) date("Y-m-d") . "FandVContracts";
 		$sqlData = new PullDataFromMySQLQuery();
 		$files = ( array ) array (
