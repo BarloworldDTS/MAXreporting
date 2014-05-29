@@ -126,7 +126,7 @@ class PullFandVContractData {
 						if ($this->_mode != "create") {
 							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "9")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING);
 						} else {
-							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "9")->setValueExplicit(date("Y-m-d 00:00:00", strtotime("+1 month")), PHPExcel_Cell_DataType::TYPE_STRING);
+							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "9")->setValueExplicit(date("Y-m-t 23:59:59", strtotime("+1 months")), PHPExcel_Cell_DataType::TYPE_STRING);
 						}
 						break;
 					case "description": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "10")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
@@ -165,7 +165,11 @@ class PullFandVContractData {
 					case "fval": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "17")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
 					case "eek": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "18")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
 					case "ed": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "19")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
-					case "id": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "20")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
+					case "id":
+						if (strtolower($this->_mode) != "create") {		
+							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "20")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING);
+							break;
+						}
 				}
 			}
 			$colCount++;
@@ -202,8 +206,11 @@ class PullFandVContractData {
 	 * Class constructor
 	 */
 	public function __construct() {
-		
+		try {
 		$_options = getopt("m:");
+		if(!array_key_exists("m",$_options)) {
+			throw new Exception ("Please provide the option using switch -m to specify the mode which the script must run." . PHP_EOL . "Modes: create / update" . PHP_EOL);
+		} 
 		$this->_mode = $_options["m"];
 		$_excelFileName = (string) date("Y-m-d") . "FandVContracts";
 		$sqlData = new PullDataFromMySQLQuery();
@@ -255,6 +262,10 @@ class PullFandVContractData {
 		}
 		//: Take data and write into an excel spreadsheet
 		$this->writeExcelFile(dirname(__FILE__) . self::DS . $_excelFileName . ".xlsx", $consolidated);
+		}
+		catch (Exception $e) {
+			print($e->getMessage());
+		}
 	}
 	
 	/**
