@@ -4,7 +4,14 @@ error_reporting ( E_ALL );
 
 // : Includes
 require_once dirname ( __FILE__ ) . '/FileParser.php';
+/**
+ * PHP Excel class library
+ */
 require_once dirname ( __FILE__ ) . '/Classes/PHPExcel.php';
+/**
+ * MySQL query pull and return data class
+ */
+include dirname ( __FILE__ ) . '/PullDataFromMySQLQuery.php';
 /**
  * PHPExcel_Writer_Excel2007
  */
@@ -13,7 +20,7 @@ include dirname ( __FILE__ ) . '/Classes/PHPExcel/Writer/Excel2007.php';
 
 /**
  * Object::High_Kms_Income_For_Export
- * 
+ *
  * @author Clinton Wright
  * @author cwright@bwtsgroup.com
  * @copyright 2011 onwards Manline Group (Pty) Ltd
@@ -33,6 +40,8 @@ class High_Kms_Income_For_Export {
 	protected $_apiurl = "https://login.max.bwtsgroup.com/api_request/Report/export?";
 	protected $_excelFileName;
 	protected $_fileName;
+	protected $_startDate;
+	protected $_endDate;
 	protected $_fleets = array (
 			118,
 			108,
@@ -69,6 +78,7 @@ class High_Kms_Income_For_Export {
 			283,
 			150 
 	);
+	protected $_fleetnames = array ();
 	
 	// : Public functions
 	// : Accessors
@@ -76,7 +86,7 @@ class High_Kms_Income_For_Export {
 	/**
 	 * High_Kms_Income_For_Export::getApiUrl()
 	 * base url to call
-	 * 
+	 *
 	 * @return string
 	 */
 	protected function getApiUrl() {
@@ -85,7 +95,7 @@ class High_Kms_Income_For_Export {
 	
 	/**
 	 * High_Kms_Income_For_Export::getExcelFile()
-	 * 
+	 *
 	 * @return string: $this->_excelFileName
 	 */
 	public function getExcelFile() {
@@ -94,7 +104,7 @@ class High_Kms_Income_For_Export {
 	
 	/**
 	 * High_Kms_Income_For_Export::getFileName()
-	 * 
+	 *
 	 * @return string: $this->_excelFileName
 	 */
 	public function getFileName() {
@@ -106,13 +116,13 @@ class High_Kms_Income_For_Export {
 	
 	/**
 	 * High_Kms_Income_For_Export::setFileName($_setFile)
-	 * 
+	 *
 	 * @param string: $_setFile        	
 	 */
 	
 	/**
 	 * High_Kms_Income_For_Export::setExcelFile($_setFile)
-	 * 
+	 *
 	 * @param string: $_setFile        	
 	 */
 	public function setExcelFile($_setFile) {
@@ -121,7 +131,7 @@ class High_Kms_Income_For_Export {
 	
 	/**
 	 * High_Kms_Income_For_Export::setFileName($_setFile)
-	 * 
+	 *
 	 * @param string: $_setFile        	
 	 */
 	public function setFileName($_setFile) {
@@ -133,7 +143,7 @@ class High_Kms_Income_For_Export {
 	/**
 	 * High_Kms_Income_For_Export::writeExcelFile($excelFile, $excelData)
 	 * Create, Write and Save Excel Spreadsheet from collected data obtained from the variance report
-	 * 
+	 *
 	 * @param $excelFile, $excelData        	
 	 */
 	public function writeExcelFile($excelFile, $excelData, $reportName, $sheetName) {
@@ -165,50 +175,67 @@ class High_Kms_Income_For_Export {
 				$objPHPExcel->getActiveSheet ()->getPageSetup ()->setFitToHeight ( 0 );
 				// : End
 				
-				// : Set Column Headers
-				print (date ( 'H:i:s' ) . " Setup column headers" . PHP_EOL) ;
-				$alphaA = range ( 'A', 'Z' );
-				$alphaVar = range ( 'A', 'Z' );
-				foreach ( $alphaA as $valueA ) {
-					foreach ( $alphaA as $valueB ) {
-						$alphaVar [] = $valueA . $valueB;
+				// : Create sheets
+				$_count = ( int ) 0;
+				foreach ( $excelData as $mainKey => $mainValue ) {
+					if ($count > 0) {
+						$objPHPExcel->createSheet ();
+						$objPHPExcel->setActiveSheetIndex ( $_count );
 					}
-				}
-				unset ( $alphaA );
-				$i = ( int ) 0;
-				foreach ( $excelData [0] [1] as $key => $value ) {
-					$objPHPExcel->getActiveSheet ()->getStyle ( $alphaVar [$i] . '1' )->getFont ()->setBold ( true );
-					$objPHPExcel->getActiveSheet ()->setCellValue ( $alphaVar [$i] . "1", $key );
-					$i ++;
+					
+					// Rename sheet
+					$objPHPExcel->getActiveSheet ()->setTitle ( substr($mainKey, 0, 10) );
+					$count ++;
 				}
 				// : End
 				
-				// : Add data from $excelData array
-				print (date ( 'H:i:s' ) . " Add data from " . self::REPORT_NAME . " report" . PHP_EOL) ;
-				$rowCount = ( int ) 2;
-				$objPHPExcel->setActiveSheetIndex ( 0 );
-				foreach ( $excelData as $keys => $values ) {
-					foreach ( $excelData [$keys] as $dataRecords ) {
-						$i = 0;
-						foreach ( $dataRecords as $key => $value ) {
-							$objPHPExcel->getActiveSheet ()->getCell ( $alphaVar [$i] . strval ( $rowCount ) )->setValueExplicit ( $value, PHPExcel_Cell_DataType::TYPE_STRING );
-							$i ++;
+				foreach ( $excelData as $mainKey => $mainValue ) {
+					// Set Correct Worksheet Active
+					$objPHPExcel->getSheetByName ( substr($mainKey, 0, 10) );
+					
+					// : Set Column Headers
+					print (date ( 'H:i:s' ) . " Setup column headers" . PHP_EOL) ;
+					$alphaA = range ( 'A', 'Z' );
+					$alphaVar = range ( 'A', 'Z' );
+					foreach ( $alphaA as $valueA ) {
+						foreach ( $alphaA as $valueB ) {
+							$alphaVar [] = $valueA . $valueB;
 						}
-						$rowCount ++;
 					}
+					unset ( $alphaA );
+					$i = ( int ) 0;
+					
+					foreach ( $excelData [$mainKey] [$this->_startDate] [1] as $key => $value ) {
+						$objPHPExcel->getActiveSheet ()->getStyle ( $alphaVar [$i] . '1' )->getFont ()->setBold ( true );
+						$objPHPExcel->getActiveSheet ()->setCellValue ( $alphaVar [$i] . "1", $key );
+						$i ++;
+					}
+					// : End
+					
+					// : Add data from $excelData array
+					print (date ( 'H:i:s' ) . " Add data from " . self::REPORT_NAME . " report" . PHP_EOL) ;
+					$rowCount = ( int ) 2;
+					foreach ( $mainValue as $_dateKey => $_dayValues ) {
+							foreach ( $_dayValues as $dataRecords ) {
+								$i = 0;
+								foreach ( $dataRecords as $key => $value ) {
+									$objPHPExcel->getActiveSheet ()->getCell ( $alphaVar [$i] . strval ( $rowCount ) )->setValueExplicit ( $value, PHPExcel_Cell_DataType::TYPE_STRING );
+									$i ++;
+								}
+								$rowCount ++;
+							}
+					}
+					// : End
+					
+					// : Setup Column Widths
+					for($i = 0; $i <= count ( $excelData [0] [1] ); $i ++) {
+						$objPHPExcel->getActiveSheet ()->getColumnDimension ( $alphaVar [$i] )->setAutoSize ( true );
+					}
+					// : End
+					
+					// Increment count
+					$count ++;
 				}
-				// : End
-				
-				// : Setup Column Widths
-				for($i = 0; $i <= count ( $excelData [0] [1] ); $i ++) {
-					$objPHPExcel->getActiveSheet ()->getColumnDimension ( $alphaVar [$i] )->setAutoSize ( true );
-				}
-				// : End
-				
-				// : Rename sheet
-				print (date ( 'H:i:s' ) . " Rename sheet" . PHP_EOL) ;
-				$objPHPExcel->getActiveSheet ()->setTitle ( $sheetName . " - " . self::REPORT_NAME );
-				// : End
 				
 				// : Save spreadsheet to Excel 2007 file format
 				print (date ( 'H:i:s' ) . " Write to Excel2007 format" . PHP_EOL) ;
@@ -238,16 +265,35 @@ class High_Kms_Income_For_Export {
 	 */
 	public function __construct() {
 		try {
+			// Store sql queries
+			$_queries = "select name from udo_fleet where id=%s;";
+			
+			// Create new SQL Query class object
+			$_mysqlQuery = new PullDataFromMySQLQuery ();
+			
+			// : Loop through each fleet ID stored in the fleet IDs array and return the name for each and add it to the array variable
+			foreach ( $this->_fleets as $_fleet ) {
+				$_aQuery = preg_replace ( "/%s/", $_fleet, $_queries );
+				$_result = $_mysqlQuery->getDataFromQuery ( $_aQuery );
+				if (count ( $_result ) != 0) {
+					if (($_result [0] ["name"]) && (array_key_exists ( "0", $_result ) != FALSE) && (array_key_exists ( "name", $_result [0] ) != FALSE)) {
+						$this->_fleetnames [$_fleet] = $_result [0] ["name"];
+					}
+				}
+			}
+			// : End
+			// : Fetch and store the parameters required from user
 			$options = getopt ( "s:e:" );
 			// Start Date
-			$startDate = $options ["s"];
+			$this->_startDate = $options ["s"];
 			// End Date
-			$endDate = $options ["e"];
+			$this->_endDate = $options ["e"];
+			// : End
 			
 			// : Construct a multidimensional array containing the year => month => days
 			$constructedDates = ( array ) array ();
 			// Build an array of the desired date range
-			$reportDates = ( array ) $this->createDateRangeArray ( $startDate, $endDate );
+			$reportDates = ( array ) $this->createDateRangeArray ( $this->_startDate, $this->_endDate );
 			
 			// Get the the year within the dates
 			$firstYear = intval ( substr ( $reportDates [0], 0, 4 ) );
@@ -305,13 +351,11 @@ class High_Kms_Income_For_Export {
 							$data = $fileParser->parseFile ();
 							$dataCount = count ( $data );
 							if ($dataCount != 0) { // If report run is empty skip adding to the array
-								$all [] = $data;
+								$all [$this->_fleetnames [$fleet_id]] [$value3] = $data;
 							}
 						}
 						echo "."; // print and period to indicate a report is successfully completed
 					}
-					print_r($all);
-					exit;
 					
 					echo "\n";
 					if (count ( $all ) != 0) {
@@ -340,7 +384,7 @@ class High_Kms_Income_For_Export {
 	
 	/**
 	 * createDateRangeArray($strDateFrom,$strDateTo)
-	 * 
+	 *
 	 * @see http://stackoverflow.com/questions/4312439/php-return-all-dates-between-two-dates-in-an-array
 	 * @param unknown $strDateFrom        	
 	 * @param unknown $strDateTo        	
