@@ -30,7 +30,7 @@ class PullDataFromMySQLQuery {
 			PDO::ATTR_PERSISTENT => true 
 	);
 	protected $_inifile = "report_data.ini";
-	protected $_errors = array();
+	protected $_errors = array ();
 	
 	// : Public functions
 	// : Accessors
@@ -38,7 +38,8 @@ class PullDataFromMySQLQuery {
 	/**
 	 * PullDataFromMySQLQuery::getErrors()
 	 * Return error messages if any errors occured while attempting to run MySQL query file
-	 * @param array: $this->_data
+	 * 
+	 * @param array: $this->_data        	
 	 */
 	public function getErrors() {
 		return $this->_errors;
@@ -47,7 +48,9 @@ class PullDataFromMySQLQuery {
 	/**
 	 * PullDataFromMySQLQuery::dbOpen()
 	 * Return error messages if any errors occured while attempting to run MySQL query file
-	 * @param array: $this->_openDB ( dbdsn, dbuser, dbpwd, dboptions )
+	 * 
+	 * @param array: $this->_openDB
+	 *        	( dbdsn, dbuser, dbpwd, dboptions )
 	 */
 	public function dbOpen() {
 		if ($this->openDB ( $this->_dbdsn, $this->_dbuser, $this->_dbpwd, $this->_dboptions ) != FALSE) {
@@ -60,20 +63,22 @@ class PullDataFromMySQLQuery {
 	/**
 	 * PullFandVContractData::dbClose()
 	 * Close connection to Database
-	 * @param object: $this->_db
+	 * 
+	 * @param object: $this->_db        	
 	 */
 	public function dbClose() {
 		$this->_db = null;
 	}
 	
-	//: End
+	// : End
 	
-	//: Public Functions
+	// : Public Functions
 	
 	/**
 	 * getDataFromQuery::getDataFromQuery()
 	 * Return the data from the MySQL Query
-	 * @param array: $this->_data
+	 * 
+	 * @param array: $this->_data        	
 	 */
 	public function getDataFromQuery($sqlquery) {
 		try {
@@ -101,7 +106,7 @@ class PullDataFromMySQLQuery {
 	 * PullDataFromMySQLQuery::getDataFromSQLFile()
 	 * Return the data from the MySQL Query
 	 *
-	 * @param array: $this->_data
+	 * @param array: $this->_data        	
 	 */
 	public function getDataFromSQLFile($sqlfile, $replace, $pattern, $replacement) {
 		try {
@@ -134,33 +139,38 @@ class PullDataFromMySQLQuery {
 		unset ( $_errors, $data );
 	}
 	
-	//: End
+	// : End
 	
 	// : Magic
 	/**
 	 * PullDataFromMySQLQuery::__construct()
 	 * Class constructor
 	 */
-	public function __construct() {
+	public function __construct($_tenant) {
 		try {
-			$_inifile = dirname(__FILE__) . self::DS . $this->_inifile;
-			if (file_exists($_inifile)) {
-				$data = parse_ini_file($_inifile);
-				if ((array_key_exists("dbdsn", $data)) && (array_key_exists("dbuser", $data)) && (array_key_exists("dbpwd", $data))) {
-					$this->_dbdsn = $data["dbdsn"];
-					$this->_dbuser = $data["dbuser"];
-					$this->_dbpwd = $data["dbpwd"];
-					$this->dbOpen();
+			if ($_tenant != "") {
+				$_inifile = dirname ( __FILE__ ) . self::DS . $this->_inifile;
+				if (file_exists ( $_inifile )) {
+					$data = parse_ini_file ( $_inifile );
+					if ((array_key_exists ( "dbdsn", $data )) && (array_key_exists ( "dbuser", $data )) && (array_key_exists ( "dbpwd", $data ))) {
+						$_dsn = preg_replace ( "/%s/", $_tenant, $data ["dbdsn"] );
+						$this->_dbdsn = $_dsn;
+						$this->_dbuser = $data ["dbuser"];
+						$this->_dbpwd = $data ["dbpwd"];
+						$this->dbOpen ();
+					} else {
+						throw new Exception ( "Correct fields where not found in file: " . $_inifile . ". Please make sure the following fields are available: dbdsn, dbuser, dbpwd" );
+					}
 				} else {
-					throw new Exception("Correct fields where not found in file: " . $_inifile . ". Please make sure the following fields are available: dbdsn, dbuser, dbpwd");
+					$this->_errors [] = "Cannot find file: " . $_inifile . ". Please create the file or that it exists.";
 				}
 			} else {
-				$this->_errors[] = "Cannot find file: " . $_inifile . ". Please create the file or that it exists.";
+				throw new Exception("ERROR: No database name provided in parameter when creating new object instance of PullDataFromMySQLQuery class");
 			}
-		} catch (Exception $e) {
-			$this->_errors[] = $e->getMessage();
+		} catch ( Exception $e ) {
+			$this->_errors [] = $e->getMessage ();
 		}
-		if (count($this->_errors) != 0) {
+		if (count ( $this->_errors ) != 0) {
 			return FALSE;
 		} else {
 			return TRUE;
