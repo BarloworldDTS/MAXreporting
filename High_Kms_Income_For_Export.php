@@ -29,54 +29,75 @@ include dirname ( __FILE__ ) . '/Classes/PHPExcel/Writer/Excel2007.php';
  */
 class High_Kms_Income_For_Export {
 	// : Constants
-	const REPORT_NUMBER = 81;
 	const REPORT_NAME = "High Kms Report";
 	const DOC_OWNER = "Clinton Wright";
 	const DOC_TITLE = "High Kms Report";
 	const DOC_FILE_NAME = "High_Kms_Report";
-	const DOC_SUBJECT = "Exported MAX Income for Export report using API calls";
+	const DOC_SUBJECT = "Custom MAX report: High Kms Report";
+	const MAXDB = "max2";
+	const T24DB = "application_3";
+	const KMS_HIGH = 3000;
 	
 	// : Variables
-	protected $_apiurl = "https://login.max.bwtsgroup.com/api_request/Report/export?";
+	protected $_tenant = array (
+			"MAX" => "https://login.max.bwtsgroup.com",
+			"T24" => "https://t24.max.bwtsgroup.com" 
+	);
+	protected $_apiurl = "/api_request/Report/export?";
+	protected $_reportNumber = array (
+			"MAX" => "84",
+			"T24" => "79" 
+	);
 	protected $_excelFileName;
 	protected $_fileName;
 	protected $_startDate;
 	protected $_endDate;
 	protected $_fleets = array (
-			118,
-			108,
-			112,
-			113,
-			119,
-			169,
-			82,
-			282,
-			100,
-			170,
-			117,
-			110,
-			114,
-			115,
-			109,
-			111,
-			116,
-			222,
-			276,
-			104,
-			95,
-			94,
-			99,
-			151,
-			155,
-			153,
-			152,
-			105,
-			101,
-			168,
-			275,
-			93,
-			283,
-			150 
+			"MAX" => array (
+					118,
+					108,
+					112,
+					113,
+					119,
+					169,
+					82,
+					282,
+					100,
+					170,
+					117,
+					110,
+					114,
+					115,
+					109,
+					111,
+					116,
+					222,
+					276,
+					104,
+					95,
+					94,
+					99,
+					151,
+					155,
+					153,
+					152,
+					105,
+					101,
+					168,
+					275,
+					93,
+					283,
+					150 
+			),
+			"T24" => array (
+					27,
+					13,
+					20,
+					29,
+					24,
+					25,
+					26 
+			) 
 	);
 	protected $_fleetnames = array ();
 	
@@ -84,13 +105,16 @@ class High_Kms_Income_For_Export {
 	// : Accessors
 	
 	/**
-	 * High_Kms_Income_For_Export::getApiUrl()
+	 * High_Kms_Income_For_Export::getApiUrl($_tenant)
 	 * base url to call
 	 *
+	 * @param string: $_tenant
+	 *        	=== "MAX" || "T24"
 	 * @return string
 	 */
-	protected function getApiUrl() {
-		return $this->_apiurl;
+	protected function getApiUrl($_tenant) {
+		$_urlReport = $this->_tenant [$_tenant] . $this->_apiurl . "report=" . $this->_reportNumber [$_tenant];
+		return $_urlReport;
 	}
 	
 	/**
@@ -113,12 +137,6 @@ class High_Kms_Income_For_Export {
 	
 	// : End
 	// : Setters
-	
-	/**
-	 * High_Kms_Income_For_Export::setFileName($_setFile)
-	 *
-	 * @param string: $_setFile        	
-	 */
 	
 	/**
 	 * High_Kms_Income_For_Export::setExcelFile($_setFile)
@@ -151,6 +169,17 @@ class High_Kms_Income_For_Export {
 			// Check data validility
 			if (count ( $excelData ) != 0) {
 				
+				// : Setup array for selecting columns in sheet
+				$alphaA = range ( 'A', 'Z' );
+				$alphaVar = range ( 'A', 'Z' );
+				foreach ( $alphaA as $valueA ) {
+					foreach ( $alphaA as $valueB ) {
+						$alphaVar [] = $valueA . $valueB;
+					}
+				}
+				unset ( $alphaA );
+				// : End
+				
 				// : Create new PHPExcel object
 				print ("<pre>") ;
 				print (date ( 'H:i:s' ) . " Create new PHPExcel object" . PHP_EOL) ;
@@ -176,36 +205,36 @@ class High_Kms_Income_For_Export {
 				// : End
 				
 				// : Create sheets
-				$_count = ( int ) 0;
+				$_count = ( int ) 1;
 				foreach ( $excelData as $mainKey => $mainValue ) {
-					if ($count > 0) {
-						$objPHPExcel->createSheet ();
-						$objPHPExcel->setActiveSheetIndex ( $_count );
+					$wsName = $mainKey;
+					// Check fleet name character length and shorten if greater than 25 characters
+					if (strlen ( $wsName ) > 25) {
+						$wsName = substr ( $wsName, 0, 25 );
 					}
+					// : Add new worksheet and set the title of the sheet name
+					$myWorkSheet = new PHPExcel_Worksheet ( $objPHPExcel, $wsName );
+					$objPHPExcel->addSheet ( $myWorkSheet, $_count );
+					// : End
 					
-					// Rename sheet
-					$objPHPExcel->getActiveSheet ()->setTitle ( substr($mainKey, 0, 10) );
-					$count ++;
+					$_count ++;
 				}
 				// : End
 				
 				foreach ( $excelData as $mainKey => $mainValue ) {
-					// Set Correct Worksheet Active
-					$objPHPExcel->getSheetByName ( substr($mainKey, 0, 10) );
+					// : Set Correct Worksheet Active
+					$wsName = $mainKey;
+					if (strlen ( $wsName ) >= 25) {
+						$wsName = substr ( $wsName, 0, 25 );
+					}
+					$objPHPExcel->setActiveSheetIndexByName ( $wsName );
+					// : End
 					
 					// : Set Column Headers
 					print (date ( 'H:i:s' ) . " Setup column headers" . PHP_EOL) ;
-					$alphaA = range ( 'A', 'Z' );
-					$alphaVar = range ( 'A', 'Z' );
-					foreach ( $alphaA as $valueA ) {
-						foreach ( $alphaA as $valueB ) {
-							$alphaVar [] = $valueA . $valueB;
-						}
-					}
-					unset ( $alphaA );
 					$i = ( int ) 0;
 					
-					foreach ( $excelData [$mainKey] [$this->_startDate] [1] as $key => $value ) {
+					foreach ( $mainValue [$this->_startDate] [1] as $key => $value ) {
 						$objPHPExcel->getActiveSheet ()->getStyle ( $alphaVar [$i] . '1' )->getFont ()->setBold ( true );
 						$objPHPExcel->getActiveSheet ()->setCellValue ( $alphaVar [$i] . "1", $key );
 						$i ++;
@@ -216,25 +245,54 @@ class High_Kms_Income_For_Export {
 					print (date ( 'H:i:s' ) . " Add data from " . self::REPORT_NAME . " report" . PHP_EOL) ;
 					$rowCount = ( int ) 2;
 					foreach ( $mainValue as $_dateKey => $_dayValues ) {
+						if (count ( $_dayValues ) != 0) {
 							foreach ( $_dayValues as $dataRecords ) {
-								$i = 0;
-								foreach ( $dataRecords as $key => $value ) {
-									$objPHPExcel->getActiveSheet ()->getCell ( $alphaVar [$i] . strval ( $rowCount ) )->setValueExplicit ( $value, PHPExcel_Cell_DataType::TYPE_STRING );
-									$i ++;
+								if (count ( $dataRecords ) != 0) {
+									// : Determine if the data needs to be added
+									$_tenant = "";
+									$kms = 0;
+									$emptykms = 0;
+									$highKmsTrue = FALSE;
+									if ((array_key_exists ( "Kms in Trip leg", $dataRecords )) && (array_key_exists ( "Empty Kms", $dataRecords ))) {
+										$kms = intval ( $dataRecords ["Kms in Trip leg"] );
+										$emptykms = intval ( $dataRecords ["Empty Kms"] );
+										if ((($kms != NULL) && ($kms > 0) && ($kms >= self::KMS_HIGH)) && (($emptykms != NULL) && ($emptykms > 0) && ($emptykms >= self::KMS_HIGH))) {
+											$highKmsTrue = TRUE;
+										} else {
+											$highKmsTrue = FALSE;
+										}
+									} else if (array_key_exists ( "Total Kms", $dataRecords )) {
+										$kms = intval ( $dataRecords ["Total Kms"] );
+										if (($kms != NULL) && ($kms > 0) && ($kms >= self::KMS_HIGH)) {
+											$highKmsTrue = TRUE;
+										} else {
+											$highKmsTrue = FALSE;
+										}
+									}
+									// : End
+									
+									// : If data criteria is met then add the data to the sheet
+									if ($highKmsTrue == TRUE) {
+										$i = 0;
+										foreach ( $dataRecords as $key => $value ) {
+											$objPHPExcel->getActiveSheet ()->getCell ( $alphaVar [$i] . strval ( $rowCount ) )->setValueExplicit ( $value, PHPExcel_Cell_DataType::TYPE_STRING );
+											$i ++;
+										}
+										// Goto next row
+										$rowCount ++;
+									}
+									//: End
 								}
-								$rowCount ++;
 							}
+						}
 					}
 					// : End
 					
-					// : Setup Column Widths
-					for($i = 0; $i <= count ( $excelData [0] [1] ); $i ++) {
+					// : Auto Set Column Widths
+					for($i = 0; $i <= count ( $mainValue [$this->_startDate] [1] ); $i ++) {
 						$objPHPExcel->getActiveSheet ()->getColumnDimension ( $alphaVar [$i] )->setAutoSize ( true );
 					}
 					// : End
-					
-					// Increment count
-					$count ++;
 				}
 				
 				// : Save spreadsheet to Excel 2007 file format
@@ -269,15 +327,26 @@ class High_Kms_Income_For_Export {
 			$_queries = "select name from udo_fleet where id=%s;";
 			
 			// Create new SQL Query class object
-			$_mysqlQuery = new PullDataFromMySQLQuery ();
+			$_mysqlQueryMAX = new PullDataFromMySQLQuery ( self::MAXDB );
+			$_mysqlQueryT24 = new PullDataFromMySQLQuery ( self::T24DB );
 			
 			// : Loop through each fleet ID stored in the fleet IDs array and return the name for each and add it to the array variable
-			foreach ( $this->_fleets as $_fleet ) {
-				$_aQuery = preg_replace ( "/%s/", $_fleet, $_queries );
-				$_result = $_mysqlQuery->getDataFromQuery ( $_aQuery );
-				if (count ( $_result ) != 0) {
-					if (($_result [0] ["name"]) && (array_key_exists ( "0", $_result ) != FALSE) && (array_key_exists ( "name", $_result [0] ) != FALSE)) {
-						$this->_fleetnames [$_fleet] = $_result [0] ["name"];
+			foreach ( $this->_fleets as $fleetKey => $fleetValue ) {
+				foreach ( $fleetValue as $_fleet ) {
+					
+					$_aQuery = preg_replace ( "/%s/", $_fleet, $_queries );
+					switch ($fleetKey) {
+						case "MAX" :
+							$_result = $_mysqlQueryMAX->getDataFromQuery ( $_aQuery );
+							break;
+						case "T24" :
+							$_result = $_mysqlQueryT24->getDataFromQuery ( $_aQuery );
+							break;
+					}
+					if (count ( $_result ) != 0) {
+						if (($_result [0] ["name"]) && (array_key_exists ( "0", $_result ) != FALSE) && (array_key_exists ( "name", $_result [0] ) != FALSE)) {
+							$this->_fleetnames [$fleetKey] [$_fleet] = $_result [0] ["name"];
+						}
 					}
 				}
 			}
@@ -337,26 +406,28 @@ class High_Kms_Income_For_Export {
 					echo $key1 . "-" . $key2 . PHP_EOL;
 					
 					foreach ( $value2 as $key3 => $value3 ) {
-						foreach ( $this->_fleets as $fleet_id ) {
-							$aDate = strtotime ( "+1 day", strtotime ( $value3 ) );
-							$reportData = array (
-									($value3 . " 00:00:00"),
-									(date ( "Y-m-d", $aDate )) . " 00:00:00" 
-							);
-							$reportUrl = $this->getApiUrl () . "report=" . strval ( self::REPORT_NUMBER ) . "&responseFormat=csv&Start_Date=" . $reportData [0] . "&Stop_Date=" . $reportData [1] . "&Fleet=" . $fleet_id;
-							// Comply with HTML string standard for whitespace characters and replace with %20
-							$reportUrl = str_replace ( " ", "%20", $reportUrl );
-							$fileParser = new FileParser ( $reportUrl );
-							$fileParser->setCurlFile ( $this->getFileName () . "-" . $value3 . ".csv" );
-							$data = $fileParser->parseFile ();
-							$dataCount = count ( $data );
-							if ($dataCount != 0) { // If report run is empty skip adding to the array
-								$all [$this->_fleetnames [$fleet_id]] [$value3] = $data;
+						foreach ( $this->_fleets as $fleetKey => $fleetValue ) {
+							foreach ( $fleetValue as $fleet_id ) {
+								$aDate = strtotime ( "+1 day", strtotime ( $value3 ) );
+								$reportData = array (
+										($value3 . " 00:00:00"),
+										(date ( "Y-m-d", $aDate )) . " 00:00:00" 
+								);
+								$reportUrl = $this->getApiUrl ( $fleetKey ) . "&responseFormat=csv&Start_Date=" . $reportData [0] . "&Stop_Date=" . $reportData [1] . "&Fleet=" . $fleet_id;
+								// Comply with HTML string standard for whitespace characters and replace with %20
+								$reportUrl = str_replace ( " ", "%20", $reportUrl );
+								$fileParser = new FileParser ( $reportUrl );
+								$fileParser->setCurlFile ( $this->getFileName () . "-" . $value3 . ".csv" );
+								$data = $fileParser->parseFile ();
+								$dataCount = count ( $data );
+								if ($dataCount != 0) { // If report run is empty skip adding to the array
+									$all [$this->_fleetnames [$fleetKey] [$fleet_id]] [$value3] = $data;
+								}
 							}
 						}
 						echo "."; // print and period to indicate a report is successfully completed
 					}
-					
+
 					echo "\n";
 					if (count ( $all ) != 0) {
 						$this->writeExcelFile ( dirname ( __FILE__ ) . $this->getExcelFile () . ".xlsx", $all, self::REPORT_NAME . "-" . $key1 . "-" . $key2, $key1 . "-" . $key2 );
