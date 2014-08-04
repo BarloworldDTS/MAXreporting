@@ -119,14 +119,14 @@ class PullFandVContractData {
 						if ($this->_mode != "create") {
 							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "8")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING);
 						} else {
-							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "8")->setValueExplicit(date("Y-m-d 00:00:00", strtotime("+1 month")), PHPExcel_Cell_DataType::TYPE_STRING);
+							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "8")->setValueExplicit(date("Y-m-01 00:00:00", strtotime("+1 month")), PHPExcel_Cell_DataType::TYPE_STRING);
 						}
 						break;
 					case "endDate":
 						if ($this->_mode != "create") {
 							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "9")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING);
 						} else {
-							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "9")->setValueExplicit(date("Y-m-t 23:59:59", strtotime("+1 months")), PHPExcel_Cell_DataType::TYPE_STRING);
+							$objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "9")->setValueExplicit(date("Y-m-t 23:59:59", strtotime("+1 month")), PHPExcel_Cell_DataType::TYPE_STRING);
 						}
 						break;
 					case "description": $objPHPExcel->getActiveSheet()->getCell($alphaVar[$colCount] . "10")->setValueExplicit($value2, PHPExcel_Cell_DataType::TYPE_STRING); break;
@@ -213,7 +213,7 @@ class PullFandVContractData {
 		} 
 		$this->_mode = $_options["m"];
 		$_excelFileName = (string) date("Y-m-d") . "FandVContracts";
-		$sqlData = new PullDataFromMySQLQuery();
+		$sqlData = new PullDataFromMySQLQuery("max2");
 		$files = ( array ) array (
 				"truck",
 				"route",
