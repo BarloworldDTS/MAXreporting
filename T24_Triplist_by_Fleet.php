@@ -238,7 +238,7 @@ class T24_Triplist_by_Fleet {
 				foreach ($value1 as $key2 => $value2) {
 					$all = array();
 					$this->setFileName($_csvFileName .date("-" . $key1 . "-" . $key2));
-					$this->setExcelFileName("/export/" . $this->getFileName() . "_" . $fleet);
+					$this->setExcelFileName("/export/" . $_csvFileName . "_" . date("Y-m-d"));
 					
 					// print the year and month
 					echo $key1 . "-" . $key2 . PHP_EOL;
