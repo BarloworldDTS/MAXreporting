@@ -248,40 +248,13 @@ class High_Kms_Income_For_Export {
 						if (count ( $_dayValues ) != 0) {
 							foreach ( $_dayValues as $dataRecords ) {
 								if (count ( $dataRecords ) != 0) {
-									// : Determine if the data needs to be added
-									$_tenant = "";
-									$kms = 0;
-									$emptykms = 0;
-									$highKmsTrue = FALSE;
-									if ((array_key_exists ( "Kms in Trip leg", $dataRecords )) && (array_key_exists ( "Empty Kms", $dataRecords ))) {
-										$kms = intval ( $dataRecords ["Kms in Trip leg"] );
-										$emptykms = intval ( $dataRecords ["Empty Kms"] );
-										if ((($kms != NULL) && ($kms > 0) && ($kms >= self::KMS_HIGH)) && (($emptykms != NULL) && ($emptykms > 0) && ($emptykms >= self::KMS_HIGH))) {
-											$highKmsTrue = TRUE;
-										} else {
-											$highKmsTrue = FALSE;
-										}
-									} else if (array_key_exists ( "Total Kms", $dataRecords )) {
-										$kms = intval ( $dataRecords ["Total Kms"] );
-										if (($kms != NULL) && ($kms > 0) && ($kms >= self::KMS_HIGH)) {
-											$highKmsTrue = TRUE;
-										} else {
-											$highKmsTrue = FALSE;
-										}
+									$i = 0;
+									foreach ( $dataRecords as $key => $value ) {
+										$objPHPExcel->getActiveSheet ()->getCell ( $alphaVar [$i] . strval ( $rowCount ) )->setValueExplicit ( $value, PHPExcel_Cell_DataType::TYPE_STRING );
+										$i ++;
 									}
-									// : End
-									
-									// : If data criteria is met then add the data to the sheet
-									if ($highKmsTrue == TRUE) {
-										$i = 0;
-										foreach ( $dataRecords as $key => $value ) {
-											$objPHPExcel->getActiveSheet ()->getCell ( $alphaVar [$i] . strval ( $rowCount ) )->setValueExplicit ( $value, PHPExcel_Cell_DataType::TYPE_STRING );
-											$i ++;
-										}
-										// Goto next row
-										$rowCount ++;
-									}
-									//: End
+									// Goto next row
+									$rowCount ++;
 								}
 							}
 						}
@@ -311,7 +284,7 @@ class High_Kms_Income_For_Export {
 				exit ();
 			}
 		} catch ( Exception $e ) {
-			echo "Caught exception: ", $e->getMessage (), "\n";
+			echo "Caught exception: ", $e->getMessage (), "\n" , $wsName;
 			exit ();
 		}
 	}
@@ -420,14 +393,54 @@ class High_Kms_Income_For_Export {
 								$fileParser->setCurlFile ( $this->getFileName () . "-" . $value3 . ".csv" );
 								$data = $fileParser->parseFile ();
 								$dataCount = count ( $data );
-								if ($dataCount != 0) { // If report run is empty skip adding to the array
-									$all [$this->_fleetnames [$fleetKey] [$fleet_id]] [$value3] = $data;
+								
+								$filteredData = array ();
+								
+								// If report run is empty skip adding to the array
+								if ($dataCount != 0) {
+									foreach ( $data as $dataRecord ) {
+										
+										// : Run through each line item imported and if kms === high then add to filteredData array
+										$_tenant = "";
+										$kms = 0;
+										$emptykms = 0;
+										$highKmsTrue = FALSE;
+										if ((array_key_exists ( "Kms in Trip leg", $dataRecord )) && (array_key_exists ( "Empty Kms", $dataRecord ))) {
+											$kms = intval ( $dataRecord ["Kms in Trip leg"] );
+											$emptykms = intval ( $dataRecord ["Empty Kms"] );
+											if ((($kms != NULL) && ($kms > 0) && ($kms >= self::KMS_HIGH)) && (($emptykms != NULL) && ($emptykms > 0) && ($emptykms >= self::KMS_HIGH))) {
+												$highKmsTrue = TRUE;
+											} else {
+												$highKmsTrue = FALSE;
+											}
+										} else if (array_key_exists ( "Total Kms", $dataRecord )) {
+											$kms = intval ( $dataRecord ["Total Kms"] );
+											if (($kms != NULL) && ($kms > 0) && ($kms >= self::KMS_HIGH)) {
+												$highKmsTrue = TRUE;
+											} else {
+												$highKmsTrue = FALSE;
+											}
+										}
+										
+										switch ($highKmsTrue) {
+											case TRUE :
+												$filteredData [] = $dataRecord;
+												break;
+										}
+										// : End
+										
+									}
+									
+									// If filteredData is empty then dont add to final data array
+									if (count ( $filteredData ) != 0) {
+										$all [$this->_fleetnames [$fleetKey] [$fleet_id]] [$value3] = $filteredData;
+									}
 								}
 							}
 						}
 						echo "."; // print and period to indicate a report is successfully completed
 					}
-
+					
 					echo "\n";
 					if (count ( $all ) != 0) {
 						$this->writeExcelFile ( dirname ( __FILE__ ) . $this->getExcelFile () . ".xlsx", $all, self::REPORT_NAME . "-" . $key1 . "-" . $key2, $key1 . "-" . $key2 );
