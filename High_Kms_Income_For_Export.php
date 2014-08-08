@@ -284,7 +284,7 @@ class High_Kms_Income_For_Export {
 				exit ();
 			}
 		} catch ( Exception $e ) {
-			echo "Caught exception: ", $e->getMessage (), "\n" , $wsName;
+			echo "Caught exception: ", $wsName, "\n", $e->getMessage (), "\n";
 			exit ();
 		}
 	}
