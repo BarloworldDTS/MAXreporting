@@ -236,8 +236,9 @@ class High_Kms_Income_For_Export {
 					// : Set Column Headers
 					print (date ( 'H:i:s' ) . " Setup column headers" . PHP_EOL) ;
 					$i = ( int ) 0;
-					print_r($key);
+					
 					foreach ( $mainValue [$this->_startDate] [1] as $key => $value ) {
+						print_r($key);
 						$objPHPExcel->getActiveSheet ()->getStyle ( $alphaVar [$i] . '1' )->getFont ()->setBold ( true );
 						$objPHPExcel->getActiveSheet ()->setCellValue ( $alphaVar [$i] . "1", $key );
 						$i ++;
@@ -265,7 +266,9 @@ class High_Kms_Income_For_Export {
 					// : End
 					
 					// : Auto Set Column Widths
-					for($i = 0; $i < count ( $mainValue [$this->_startDate] [1] ); $i ++) {
+					echo "Auto set column widths";
+					print_r($mainValue);
+					for($i = 0; $i <= count ( $mainValue [$this->_startDate] [1] ); $i ++) {
 						$objPHPExcel->getActiveSheet ()->getColumnDimension ( $alphaVar [$i] )->setAutoSize ( true );
 					}
 					// : End
