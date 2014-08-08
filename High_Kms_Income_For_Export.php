@@ -178,8 +178,6 @@ class High_Kms_Income_For_Export {
 					}
 				}
 				unset ( $alphaA );
-				echo "Print out alphavar" . PHP_EOL;
-				print_r($alphaVar);
 				// : End
 				
 				// : Create new PHPExcel object
@@ -208,7 +206,7 @@ class High_Kms_Income_For_Export {
 				
 				// : Create sheets
 				$_count = ( int ) 1;
-				echo "Generate worksheets" . PHP_EOL;
+				print (date ( 'H:i:s' ) . " Generating worksheets " . $wsName . " columns" . PHP_EOL);
 				foreach ( $excelData as $mainKey => $mainValue ) {
 					$wsName = $mainKey;
 					// Check fleet name character length and shorten if greater than 25 characters
@@ -219,8 +217,9 @@ class High_Kms_Income_For_Export {
 					$myWorkSheet = new PHPExcel_Worksheet ( $objPHPExcel, $wsName );
 					$objPHPExcel->addSheet ( $myWorkSheet, $_count );
 					// : End
-					echo $wsName . PHP_EOL;
+					
 					$_count ++;
+					print(date ( 'H:i:s' ) . " Added worksheet: " . $wsName . PHP_EOL);
 				}
 				// : End
 				
@@ -230,14 +229,19 @@ class High_Kms_Income_For_Export {
 					if (strlen ( $wsName ) >= 25) {
 						$wsName = substr ( $wsName, 0, 25 );
 					}
+					print (date ( 'H:i:s' ) . " Set active worksheet " . $wsName . PHP_EOL);
 					$objPHPExcel->setActiveSheetIndexByName ( $wsName );
 					// : End
+					
+					// : Get first date record in array
+					$_aDate = key($mainValue);
 					
 					// : Set Column Headers
 					print (date ( 'H:i:s' ) . " Setup column headers" . PHP_EOL) ;
 					$i = ( int ) 0;
-					
-					foreach ( $mainValue [$this->_startDate] [1] as $key => $value ) {
+					// Error occurs because of $this->_startDate - Fetch key of array to get value needed here
+					// Undefined index = 1
+					foreach ( $mainValue [$_aDate] [0] as $key => $value ) {
 						print_r($key);
 						$objPHPExcel->getActiveSheet ()->getStyle ( $alphaVar [$i] . '1' )->getFont ()->setBold ( true );
 						$objPHPExcel->getActiveSheet ()->setCellValue ( $alphaVar [$i] . "1", $key );
@@ -266,9 +270,8 @@ class High_Kms_Income_For_Export {
 					// : End
 					
 					// : Auto Set Column Widths
-					echo "Auto set column widths";
-					print_r($mainValue);
-					for($i = 0; $i <= count ( $mainValue [$this->_startDate] [1] ); $i ++) {
+					print (date ( 'H:i:s' ) . " Autosizing worksheet " . $wsName . " columns" . PHP_EOL);
+					for($i = 0; $i <= count ( $mainValue [$_aDate] [0] ); $i ++) {
 						$objPHPExcel->getActiveSheet ()->getColumnDimension ( $alphaVar [$i] )->setAutoSize ( true );
 					}
 					// : End
