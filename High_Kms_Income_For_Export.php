@@ -178,6 +178,8 @@ class High_Kms_Income_For_Export {
 					}
 				}
 				unset ( $alphaA );
+				echo "Print out alphavar" . PHP_EOL;
+				print_r($alphaVar);
 				// : End
 				
 				// : Create new PHPExcel object
@@ -206,6 +208,7 @@ class High_Kms_Income_For_Export {
 				
 				// : Create sheets
 				$_count = ( int ) 1;
+				echo "Generate worksheets" . PHP_EOL;
 				foreach ( $excelData as $mainKey => $mainValue ) {
 					$wsName = $mainKey;
 					// Check fleet name character length and shorten if greater than 25 characters
@@ -216,7 +219,7 @@ class High_Kms_Income_For_Export {
 					$myWorkSheet = new PHPExcel_Worksheet ( $objPHPExcel, $wsName );
 					$objPHPExcel->addSheet ( $myWorkSheet, $_count );
 					// : End
-					
+					echo $wsName . PHP_EOL;
 					$_count ++;
 				}
 				// : End
@@ -233,7 +236,7 @@ class High_Kms_Income_For_Export {
 					// : Set Column Headers
 					print (date ( 'H:i:s' ) . " Setup column headers" . PHP_EOL) ;
 					$i = ( int ) 0;
-					
+					print_r($key);
 					foreach ( $mainValue [$this->_startDate] [1] as $key => $value ) {
 						$objPHPExcel->getActiveSheet ()->getStyle ( $alphaVar [$i] . '1' )->getFont ()->setBold ( true );
 						$objPHPExcel->getActiveSheet ()->setCellValue ( $alphaVar [$i] . "1", $key );
@@ -242,7 +245,7 @@ class High_Kms_Income_For_Export {
 					// : End
 					
 					// : Add data from $excelData array
-					print (date ( 'H:i:s' ) . " Add data from " . self::REPORT_NAME . " report" . PHP_EOL) ;
+					print (date ( 'H:i:s' ) . " Add data from " . $wsName . " report" . PHP_EOL) ;
 					$rowCount = ( int ) 2;
 					foreach ( $mainValue as $_dateKey => $_dayValues ) {
 						if (count ( $_dayValues ) != 0) {
@@ -262,7 +265,7 @@ class High_Kms_Income_For_Export {
 					// : End
 					
 					// : Auto Set Column Widths
-					for($i = 0; $i <= count ( $mainValue [$this->_startDate] [1] ); $i ++) {
+					for($i = 0; $i < count ( $mainValue [$this->_startDate] [1] ); $i ++) {
 						$objPHPExcel->getActiveSheet ()->getColumnDimension ( $alphaVar [$i] )->setAutoSize ( true );
 					}
 					// : End
@@ -440,7 +443,7 @@ class High_Kms_Income_For_Export {
 						}
 						echo "."; // print and period to indicate a report is successfully completed
 					}
-					
+					print_r($all);
 					echo "\n";
 					if (count ( $all ) != 0) {
 						$this->writeExcelFile ( dirname ( __FILE__ ) . $this->getExcelFile () . ".xlsx", $all, self::REPORT_NAME . "-" . $key1 . "-" . $key2, $key1 . "-" . $key2 );
