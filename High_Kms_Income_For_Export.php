@@ -242,7 +242,6 @@ class High_Kms_Income_For_Export {
 					// Error occurs because of $this->_startDate - Fetch key of array to get value needed here
 					// Undefined index = 1
 					foreach ( $mainValue [$_aDate] [0] as $key => $value ) {
-						print_r($key);
 						$objPHPExcel->getActiveSheet ()->getStyle ( $alphaVar [$i] . '1' )->getFont ()->setBold ( true );
 						$objPHPExcel->getActiveSheet ()->setCellValue ( $alphaVar [$i] . "1", $key );
 						$i ++;
@@ -449,8 +448,14 @@ class High_Kms_Income_For_Export {
 						}
 						echo "."; // print and period to indicate a report is successfully completed
 					}
+					// : Print final array data to be exported to page
+					print ("<pre>" . PHP_EOL);
+					print (date("Y-m-d H:i:s") . " Print final data to export to spreadsheet" . PHP_EOL);
 					print_r($all);
-					echo "\n";
+					print (PHP_EOL . "</pre>" . PHP_EOL);
+					// : End
+					
+					// Write excel spreadsheet using final data array only if there is data to export
 					if (count ( $all ) != 0) {
 						$this->writeExcelFile ( dirname ( __FILE__ ) . $this->getExcelFile () . ".xlsx", $all, self::REPORT_NAME . "-" . $key1 . "-" . $key2, $key1 . "-" . $key2 );
 					}
