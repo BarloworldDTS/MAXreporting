@@ -54,6 +54,8 @@ class High_Kms_Income_For_Export {
 	protected $_endDate;
 	protected $_fleets = array (
 			"MAX" => array (
+					303,
+					302,
 					118,
 					108,
 					112,
