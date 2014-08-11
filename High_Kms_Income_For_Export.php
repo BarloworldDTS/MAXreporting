@@ -216,8 +216,14 @@ class High_Kms_Income_For_Export {
 						$wsName = substr ( $wsName, 0, 25 );
 					}
 					// : Add new worksheet and set the title of the sheet name
-					$myWorkSheet = new PHPExcel_Worksheet ( $objPHPExcel, $wsName );
-					$objPHPExcel->addSheet ( $myWorkSheet, $_count );
+					if ($_count != 1) {
+						// If this is not the first worksheet then add a new worksheet
+						$myWorkSheet = new PHPExcel_Worksheet ( $objPHPExcel, $wsName );
+						$objPHPExcel->addSheet ( $myWorkSheet, $_count );
+					} else {
+						// If this is the first worksheet to add then rename the existing worksheet
+						$objPHPExcel->getActiveSheet()->setTitle($wsName);
+					}
 					// : End
 					
 					$_count ++;
