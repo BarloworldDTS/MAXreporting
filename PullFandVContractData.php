@@ -260,6 +260,8 @@ class PullFandVContractData {
 				}
 			}
 		}
+		print_r($consolidated);
+		exit;
 		//: Take data and write into an excel spreadsheet
 		$this->writeExcelFile(dirname(__FILE__) . self::DS . $_excelFileName . ".xlsx", $consolidated);
 		}

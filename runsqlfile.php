@@ -117,10 +117,11 @@ class runsqlfile {
 	*/
 	public function __construct() {
 	// Construct an array with predefined date(s) which we will use to run a report
-		$options = getopt("f:");
+		$options = getopt("f:d:");
 		$sqlfile = $options["f"];
+		$tenant_id = $options["d"];
 		echo "SQL File: " . $sqlfile . ".sql" . PHP_EOL;
-		$sqlData = new PullDataFromMySQLQuery();
+		$sqlData = new PullDataFromMySQLQuery($tenant_id);
 		$_data = $sqlData->getDataFromSQLFile($sqlfile . ".sql", "", "", FALSE);
 		if ($_data == FALSE) {
 			print_r($sqlData->getErrors());

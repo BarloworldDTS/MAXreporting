@@ -7,4 +7,4 @@ LEFT JOIN udo_rates AS ra ON (ra.id = fvc.variableCostRate_id)
 LEFT JOIN udo_truckdescription AS td ON (td.id = ra.truckDescription_id)
 LEFT JOIN udo_fandvcontracttruck_link AS trl ON (trl.fandVContract_id = fvc.id)
 LEFT JOIN udo_truck AS tr ON (tr.id = trl.truck_id)
-WHERE cu.active = 1 AND cu.primaryCustomer = 1 AND cu.useFandVContract = 1 AND fvc.startDate >= "2014-03-31 22:00:00" AND fvc.endDate <= "2014-05-11 21:59:59" AND cu.id=17692;
+WHERE cu.active = 1 AND cu.primaryCustomer = 1 AND cu.useFandVContract = 1 AND fvc.startDate >= "2014-06-30 22:00:00" AND fvc.endDate <= "2014-08-10 21:59:59";
