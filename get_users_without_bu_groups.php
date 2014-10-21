@@ -32,10 +32,20 @@ class get_users_without_bu_groups {
 	// : Constants
 	const MAXDB = "max2";
 	const T24DB = "application_3";
+	const DS = DIRECTORY_SEPARATOR;
+	const DELIMITER = ',';
+	const ENCLOSURE = '"';
+	const CSV_LIMIT = 0;
+	const FILE_NOT_FOUND = "The following path and filename could not be found: %s";
+	const COULD_NOT_OPEN_FILE = "Could not open the specfied file %s";
+	const FILE_EMPTY = "The following file is empty: %s";
+	const COLUMN_VALIDATION_FAIL = "Not all columns are present in the following file %s";
+	const DIR_NOT_FOUND = "The directory path was not found: %s.";
 	
 	// : Variables
 	protected $_fileName;
 	protected $_errors;
+	protected $_data;
 	
 	// : Public functions
 	// : Accessors
@@ -43,10 +53,10 @@ class get_users_without_bu_groups {
 	/**
 	 * get_users_without_bu_groups::getError()
 	 *
-	 * @param string: $this->_errors;
+	 * @param string: $this->_errors;        	
 	 */
 	public function getError() {
-		if (!empty($this->_errors)) {
+		if (! empty ( $this->_errors )) {
 			return $this->_errors;
 		} else {
 			return FALSE;
@@ -72,7 +82,7 @@ class get_users_without_bu_groups {
 	 * get_users_without_bu_groups::__construct()
 	 * Class constructor
 	 */
-	public function __construct() {
+	public function __construct($_file) {
 		try {
 			// Store sql queries
 			$_queries = array (
@@ -85,36 +95,44 @@ class get_users_without_bu_groups {
 			$_mysqlQueryMAX = new PullDataFromMySQLQuery ( self::MAXDB );
 			$_maxUsersWithNoBU = ( array ) array ();
 			$_buGroups = ( array ) array ();
-			$_grpList = (string) "";
+			$_grpList = ( string ) "";
 			$_buGroups = $_mysqlQueryMAX->getDataFromQuery ( $_queries [2] );
 			if (! $_buGroups) {
 				throw new Exception ( "No business unit groups found in groups table on MAX using the following query:\n{$_queries[2]}" );
 			} else {
 				foreach ( $_buGroups as $key => $value ) {
 					preg_match ( '/^BU.+-.+([Ff]reight|[Dd]edicated|[Mm]anline\s[Mm]ega|[Tt]imber\s24|[Ee]cosse|[Ee]nergy)$/', $value ["name"], $_pregResults );
-					if (!empty($_pregResults)) {
-							if (empty($_grpList)) 
-						{
+					if (! empty ( $_pregResults )) {
+						if (empty ( $_grpList )) {
 							$_grpList = $value ["id"];
-						} else 
-						{
+						} else {
 							$_grpList .= ",{$value["id"]}";
 						}
 					}
 				}
 			}
-			$_totalUsers  = (integer)0;
+			$_totalUsers = ( integer ) 0;
 			$_maxUsers = ( array ) array ();
 			$_maxUsers = $_mysqlQueryMAX->getDataFromQuery ( $_queries [0] );
+			// Add headers to the array
+			$_maxUsersWithNoBU [] = array (
+					"ID",
+					"Firstnames",
+					"Surname",
+					"Email",
+					"PersonalGroupID",
+					"Status" 
+			);
 			if ($_maxUsers) {
 				foreach ( $_maxUsers as $key => $value ) {
 					$_aQuery = preg_replace ( "/%s/", $value ["personal_group_id"], $_queries [1] );
 					$_aQuery = preg_replace ( "/%g/", $_grpList, $_aQuery );
 					$_result = $_mysqlQueryMAX->getDataFromQuery ( $_aQuery );
-					if (empty($_result)) {
-						if (! array_key_exists ( $value ["first_name"] . " " . $value ["last_name"], $_maxUsers )) {
-							$_maxUsersWithNoBU [$value ["first_name"] . " " . $value ["last_name"]] = $value;
-							$_totalUsers++;
+					if (empty ( $_result )) {
+						if (! array_key_exists ( $value ["first_name"] . " " . $value ["last_name"], $_maxUsersWithNoBU )) {
+							foreach ( $value as $aKey => $aValue ) {
+								$_maxUsersWithNoBU [$value ["first_name"] . " " . $value ["last_name"]] [$aKey] = $aValue;
+							}
 						}
 					}
 				}
@@ -124,15 +142,18 @@ class get_users_without_bu_groups {
 			// Close database connection
 			unset ( $_mysqlQueryMAX );
 			
+			$_csvfile = dirname(__FILE__) . self::DS . "Data" . self::DS . $_file;
+			
+			$this->ExportToCSV($_csvfile, $_maxUsersWithNoBU);
+			
 			// Return result
-			if (empty($_maxUsersWithNoBU)) {
+			if (empty ( $_maxUsersWithNoBU )) {
 				return FALSE;
 			} else {
-				return $_maxUsersWithNoBU;
+				return TRUE;
 			}
-			
 		} catch ( Exception $e ) {
-			$this->_errors[] = $e->getMessage();
+			$this->_errors [] = $e->getMessage ();
 			unset ( $_mysqlQueryMAX );
 			return FALSE;
 		}
@@ -149,5 +170,30 @@ class get_users_without_bu_groups {
 	// : End
 	
 	// : Private Functions
+	/**
+	 * getusersBUFromList::ExportToCSV($csvFile, $arr)
+	 * From supplied csv file save data into multidimensional array
+	 *
+	 * @param string: $csvFile        	
+	 * @param array: $_arr        	
+	 */
+	private function ExportToCSV($csvFile, $_arr) {
+		try {
+			$_data = ( array ) array ();
+			if (file_exists ( dirname ( $csvFile ) )) {
+				$_handle = fopen ( $csvFile, 'w' );
+				foreach ( $_arr as $key => $value ) {
+					fputcsv ( $_handle, $value );
+				}
+				fclose ( $_handle );
+			} else {
+				$_msg = preg_replace ( "@%s@", $csvFile, self::DIR_NOT_FOUND );
+				throw new Exception ( $_msg );
+			}
+		} catch ( Exception $e ) {
+			return FALSE;
+		}
+	}
+	
 	// : End
 }
