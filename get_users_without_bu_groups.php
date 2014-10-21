@@ -3,7 +3,6 @@
 error_reporting ( E_ALL );
 
 // : Includes
-require_once dirname ( __FILE__ ) . '/FileParser.php';
 // MySQL query pull and return data class
 include dirname ( __FILE__ ) . '/PullDataFromMySQLQuery.php';
 // : End
@@ -36,21 +35,26 @@ class get_users_without_bu_groups {
 	
 	// : Variables
 	protected $_fileName;
+	protected $_errors;
 	
 	// : Public functions
 	// : Accessors
 	
+	/**
+	 * get_users_without_bu_groups::getError()
+	 *
+	 * @param string: $this->_errors;
+	 */
+	public function getError() {
+		if (!empty($this->_errors)) {
+			return $this->_errors;
+		} else {
+			return FALSE;
+		}
+	}
+	
 	// : End
 	// : Setters
-	
-	/**
-	 * get_users_without_bu_groups::setExcelFile($_setFile)
-	 *
-	 * @param string: $_setFile        	
-	 */
-	public function setExcelFile($_setFile) {
-		$this->_excelFileName = $_setFile;
-	}
 	
 	/**
 	 * get_users_without_bu_groups::setFileName($_setFile)
@@ -71,34 +75,66 @@ class get_users_without_bu_groups {
 	public function __construct() {
 		try {
 			// Store sql queries
-			$_queries = array(
+			$_queries = array (
 					"select pu.id, p.first_name, p.last_name, p.email, pu.personal_group_id, pu.status from person as p left join permissionuser as pu on (pu.person_id=p.id) where pu.status = 1 order by pu.id asc;",
-					"select grl.id, gr.name from group_role_link as grl left join `group` as gr on (gr.id=grl.group_id) where grl.group_id = %s order by grl.id asc;"
+					"select grl.id, gr.name from group_role_link as grl left join `group` as gr on (gr.id=grl.group_id) where grl.played_by_group_id = %s and grl.group_id IN (%g) order by grl.id asc;",
+					"select id, name from `group` where name like 'bu%-%';" 
 			);
 			
 			// Create new SQL Query class object
 			$_mysqlQueryMAX = new PullDataFromMySQLQuery ( self::MAXDB );
-			$_maxUsersWithNoBU = (array) array();
-			$_maxUsers = (array) array(); 
-			$_maxUsers = $_mysqlQueryMAX->getDataFromQuery($_queries[0]);
-			if ($_maxUsers) {
-				foreach($_maxUsers as $key => $value) {
-					$_aQuery = preg_replace("/%s/", $value["personal_group_id"], $_queries[1]);
-					$_result = $_mysqlQueryMAX->getDataFromQuery($_aQuery);
-					if (count($_result) === 0) {
-						if (!array_key_exists($value["first_name"] . " " . $value["last_name"], $_maxUsers)) {
-							$_maxUsersWithNoBU[$value["first_name"] . " " . $value["last_name"]] = $value;
+			$_maxUsersWithNoBU = ( array ) array ();
+			$_buGroups = ( array ) array ();
+			$_grpList = (string) "";
+			$_buGroups = $_mysqlQueryMAX->getDataFromQuery ( $_queries [2] );
+			if (! $_buGroups) {
+				throw new Exception ( "No business unit groups found in groups table on MAX using the following query:\n{$_queries[2]}" );
+			} else {
+				foreach ( $_buGroups as $key => $value ) {
+					preg_match ( '/^BU.+-.+([Ff]reight|[Dd]edicated|[Mm]anline\s[Mm]ega|[Tt]imber\s24|[Ee]cosse|[Ee]nergy)$/', $value ["name"], $_pregResults );
+					if (!empty($_pregResults)) {
+							if (empty($_grpList)) 
+						{
+							$_grpList = $value ["id"];
+						} else 
+						{
+							$_grpList .= ",{$value["id"]}";
 						}
 					}
 				}
 			}
-			var_dump($_maxUsersWithNoBU);
-			unset($_mysqlQueryMAX);
+			$_totalUsers  = (integer)0;
+			$_maxUsers = ( array ) array ();
+			$_maxUsers = $_mysqlQueryMAX->getDataFromQuery ( $_queries [0] );
+			if ($_maxUsers) {
+				foreach ( $_maxUsers as $key => $value ) {
+					$_aQuery = preg_replace ( "/%s/", $value ["personal_group_id"], $_queries [1] );
+					$_aQuery = preg_replace ( "/%g/", $_grpList, $_aQuery );
+					$_result = $_mysqlQueryMAX->getDataFromQuery ( $_aQuery );
+					if (empty($_result)) {
+						if (! array_key_exists ( $value ["first_name"] . " " . $value ["last_name"], $_maxUsers )) {
+							$_maxUsersWithNoBU [$value ["first_name"] . " " . $value ["last_name"]] = $value;
+							$_totalUsers++;
+						}
+					}
+				}
+			} else {
+				throw new Exception ( "No users found in the persons table MAX database using the following query:\n{$_queries[0]}" );
+			}
+			// Close database connection
+			unset ( $_mysqlQueryMAX );
+			
+			// Return result
+			if (empty($_maxUsersWithNoBU)) {
+				return FALSE;
+			} else {
+				return $_maxUsersWithNoBU;
+			}
 			
 		} catch ( Exception $e ) {
-			echo "Caught exception: ", $e->getMessage (), "\n";
-			echo "F", "\n";
-			exit ();
+			$this->_errors[] = $e->getMessage();
+			unset ( $_mysqlQueryMAX );
+			return FALSE;
 		}
 	}
 	
@@ -113,36 +149,5 @@ class get_users_without_bu_groups {
 	// : End
 	
 	// : Private Functions
-	
-	/**
-	 * createDateRangeArray($strDateFrom,$strDateTo)
-	 *
-	 * @see http://stackoverflow.com/questions/4312439/php-return-all-dates-between-two-dates-in-an-array
-	 * @param unknown $strDateFrom        	
-	 * @param unknown $strDateTo        	
-	 * @return multitype:
-	 */
-	private function createDateRangeArray($strDateFrom, $strDateTo) {
-		// takes two dates formatted as YYYY-MM-DD and creates an
-		// inclusive array of the dates between the from and to dates.
-		
-		// could test validity of dates here but I'm already doing
-		// that in the main script
-		$aryRange = array ();
-		
-		$iDateFrom = mktime ( 1, 0, 0, substr ( $strDateFrom, 5, 2 ), substr ( $strDateFrom, 8, 2 ), substr ( $strDateFrom, 0, 4 ) );
-		$iDateTo = mktime ( 1, 0, 0, substr ( $strDateTo, 5, 2 ), substr ( $strDateTo, 8, 2 ), substr ( $strDateTo, 0, 4 ) );
-		
-		if ($iDateTo >= $iDateFrom) {
-			array_push ( $aryRange, date ( 'Y-m-d', $iDateFrom ) ); // first entry
-			while ( $iDateFrom < $iDateTo ) {
-				$iDateFrom += 86400; // add 24 hours
-				array_push ( $aryRange, date ( 'Y-m-d', $iDateFrom ) );
-			}
-		}
-		return $aryRange;
-	}
 	// : End
 }
-
-new get_users_without_bu_groups ();
