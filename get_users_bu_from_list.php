@@ -107,14 +107,58 @@ class get_users_bu_from_list {
 			}
 			// : End
 			
-			// Destroy object _maxusers
+			// Destroy object_maxusers
 			unset($_maxusers);
+			
+			$_data = (array) array();
+			$_budata = (array) array();
+			$_namesdata = (array) array("firstName1" => "", "firstName2" => "", "surname1", "surname2");
 			
 			// : If both csv files imported and contain data then process the data
 			if ((isset($_csvdata1)) && (!empty($_csvdata1)) && (!empty($_csvdata2)) && (isset($_csvdata2))) {
 				foreach($_csvdata1 as $key1 => $value1) {
 					foreach($_csvdata2 as $key2 => $value2) {
+						// : Store all data into variables that need to be processed
 						
+						$_namesdata["firstName1"] = strtolower($value1["firstnames"]);
+						$_namesdata["firstName2"] = strtolower($value2["full names"]);
+						$_namesdata["surname1"] = strtolower($value1["surname"]);
+						$_namesdata["surname2"] = strtolower($value2["surname"]);
+						$_budata[0] = strtolower($value2["vip description"]);
+						$_budata[1] = strtolower($value2["cost centre description"]);
+						$_budata[2] = strtolower($value2["business unit description"]);
+						// : End
+						
+						// : Clean up variables
+						$_tempArr = preg_split("/\s/",  $_namesdata["firstName2"]);
+						if (!$_tempArr) {
+							if (!$_tempArr[0]) {
+								$_namesdata["firstName2"] = $_tempArr[0];
+							}
+						}
+
+						$_tempArr = preg_split("/\s/",  $_namesdata["surname2"]);
+						if (!$_tempArr) {
+							if (!$_tempArr[0] && count($_tempArr > 1)) {
+								$_namesdata["surname2"] = $_tempArr[1];
+							} else if ($_tempArr[0] && count($_tempArr < 2) && count($_tempArr <> 0)) {
+								$_namesdata["surname2"] = $_tempArr[0];
+							} 
+						}
+						// : End
+						
+						// : Check if name matches
+						preg_match("/^" . $_namesdata["firstName1"] . ".*$/", $_namesdata["firstName2"], $_matches);
+						if ($_matches) {
+							preg_match("/^" . $_namesdata["surname1"] . ".*$/", $_namesdata["surname2"], $_matches2);
+							if ($_matches2) {
+							}
+						}
+						// : End
+						
+						// : If name match is found then determine which Business Units need to be added
+						
+						// : End
 					}
 				}
 			}
