@@ -86,31 +86,39 @@ class get_users_bu_from_list {
 	 * get_users_bu_from_list::__construct()
 	 * Class constructor
 	 */
-	public function __construct($_file) {
+	public function __construct($_file1, $_file2) {
 		try {
-			$_fullPath = dirname(__FILE__) . self::DS . "Data" . self::DS . $_file;
-
-			if (file_exists($_fullPath)) {
-				$_csvdata = $this->ImportFromCSV($_fullPath);  
+			// : using the filename given use the sub dir 'Data' of the script root path
+			$_fullPath1 = dirname(__FILE__) . self::DS . "Data" . self::DS . $_file1;
+			$_fullPath2 = dirname(__FILE__) . self::DS . "Data" . self::DS . $_file2;
+			
+			// Run query and get all users that do not belong to business unit groups and export results to a CSV file
+			$_maxusers = new get_users_without_bu_groups($_fullPath1);
+			
+			// : Check if the above exported CSV file exists and import the data
+			if (file_exists($_fullPath1)) {
+				$_csvdata1 = $this->ImportFromCSV($_fullPath1);
 			}
+			// : End
 			
-			$_db_users = new get_users_without_bu_groups;
+			// : Import data from CSV file containing list of employees at BWT
+			if (file_exists($_fullPath2)) {
+				$_csvdata2 = $this->ImportFromCSV($_fullPath2);  
+			}
+			// : End
 			
-			if ((isset($_db_users)) && (!empty($_db_users)) && (!empty($_csvdata)) && (isset($_csvdata))) {
-				foreach($_db_users as $key => $value) {
-					$_name = strtolower($_value["first_name"]);
-					$_found = array();
-					foreach($_csvdata as $aKey => $aValue) {
-						$_result = preg_grep("/^" . $_name . "*$/", $aValue);
-						if ($_result) {
-							$_found[] = $_result;
-						}
-					}
-					if ($_found) {
-						var_dump($_found);
+			// Destroy object _maxusers
+			unset($_maxusers);
+			
+			// : If both csv files imported and contain data then process the data
+			if ((isset($_csvdata1)) && (!empty($_csvdata1)) && (!empty($_csvdata2)) && (isset($_csvdata2))) {
+				foreach($_csvdata1 as $key1 => $value1) {
+					foreach($_csvdata2 as $key2 => $value2) {
+						
 					}
 				}
 			}
+			// : End
 			
 		} catch ( Exception $e ) {
 			$this->_errors[] = $e->getMessage();
@@ -183,4 +191,4 @@ class get_users_bu_from_list {
 	}
 	// : End
 }
-new get_users_bu_from_list("userlist.csv");
+new get_users_bu_from_list("test.csv","userlist.csv");
