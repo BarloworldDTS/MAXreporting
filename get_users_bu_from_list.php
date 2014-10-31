@@ -5,6 +5,7 @@ error_reporting ( E_ALL );
 // : Includes
 require_once 'get_users_without_bu_groups.php';
 require_once 'Archive/FileParser.php';
+require_once 'PullDataFromMySQLQuery.php';
 // : End
 
 /**
@@ -44,10 +45,10 @@ class get_users_bu_from_list {
 	/**
 	 * get_users_bu_from_list::getError()
 	 *
-	 * @param string: $this->_errors;
+	 * @param string: $this->_errors;        	
 	 */
 	public function getError() {
-		if (!empty($this->_errors)) {
+		if (! empty ( $this->_errors )) {
 			return $this->_errors;
 		} else {
 			return FALSE;
@@ -59,8 +60,8 @@ class get_users_bu_from_list {
 	 * Replace long hyphens in string to short hyphens as part of a problem
 	 * created when importing data from spreadsheets
 	 *
-	 * @param string: $_value
-	 * @param string: $_result
+	 * @param string: $_value        	
+	 * @param string: $_result        	
 	 */
 	public function stringHypenFix($_value) {
 		$_result = preg_replace ( "/–/", "-", $_value );
@@ -88,85 +89,104 @@ class get_users_bu_from_list {
 	 */
 	public function __construct($_file1, $_file2) {
 		try {
+			$_db = new PullDataFromMySQLQuery("selenium_test", "127.0.0.1");
+			$_bu_groups = (array) array();
+			$_result = $_db->getDataFromQuery("select name from business_unit_group")
 			// : using the filename given use the sub dir 'Data' of the script root path
-			$_fullPath1 = dirname(__FILE__) . self::DS . "Data" . self::DS . $_file1;
-			$_fullPath2 = dirname(__FILE__) . self::DS . "Data" . self::DS . $_file2;
+			$_fullPath1 = dirname ( __FILE__ ) . self::DS . "Data" . self::DS . $_file1;
+			$_fullPath2 = dirname ( __FILE__ ) . self::DS . "Data" . self::DS . $_file2;
 			
 			// Run query and get all users that do not belong to business unit groups and export results to a CSV file
-			$_maxusers = new get_users_without_bu_groups($_fullPath1);
+			$_maxusers = new get_users_without_bu_groups ( $_fullPath1 );
 			
 			// : Check if the above exported CSV file exists and import the data
-			if (file_exists($_fullPath1)) {
-				$_csvdata1 = $this->ImportFromCSV($_fullPath1);
+			if (file_exists ( $_fullPath1 )) {
+				$_csvdata1 = $this->ImportFromCSV ( $_fullPath1 );
 			}
 			// : End
 			
 			// : Import data from CSV file containing list of employees at BWT
-			if (file_exists($_fullPath2)) {
-				$_csvdata2 = $this->ImportFromCSV($_fullPath2);  
+			if (file_exists ( $_fullPath2 )) {
+				$_csvdata2 = $this->ImportFromCSV ( $_fullPath2 );
 			}
 			// : End
 			
 			// Destroy object_maxusers
-			unset($_maxusers);
+			unset ( $_maxusers );
 			
-			$_data = (array) array();
-			$_budata = (array) array();
-			$_namesdata = (array) array("firstName1" => "", "firstName2" => "", "surname1", "surname2");
+			$_data = ( array ) array ();
+			$_budata = ( array ) array ();
+			$_namesdata = ( array ) array (
+					"firstName1" => "",
+					"firstName2" => "",
+					"surname1",
+					"surname2" 
+			);
+			$_cond1 = ( bool ) FALSE;
+			$_cond2 = ( bool ) FALSE;
 			
 			// : If both csv files imported and contain data then process the data
-			if ((isset($_csvdata1)) && (!empty($_csvdata1)) && (!empty($_csvdata2)) && (isset($_csvdata2))) {
-				foreach($_csvdata1 as $key1 => $value1) {
-					foreach($_csvdata2 as $key2 => $value2) {
+			if ((isset ( $_csvdata1 )) && (! empty ( $_csvdata1 )) && (! empty ( $_csvdata2 )) && (isset ( $_csvdata2 ))) {
+				foreach ( $_csvdata1 as $key1 => $value1 ) {
+					foreach ( $_csvdata2 as $key2 => $value2 ) {
 						// : Store all data into variables that need to be processed
-						
-						$_namesdata["firstName1"] = strtolower($value1["firstnames"]);
-						$_namesdata["firstName2"] = strtolower($value2["full names"]);
-						$_namesdata["surname1"] = strtolower($value1["surname"]);
-						$_namesdata["surname2"] = strtolower($value2["surname"]);
-						$_budata[0] = strtolower($value2["vip description"]);
-						$_budata[1] = strtolower($value2["cost centre description"]);
-						$_budata[2] = strtolower($value2["business unit description"]);
-						// : End
-						
-						// : Clean up variables
-						$_tempArr = preg_split("/\s/",  $_namesdata["firstName2"]);
-						if (!$_tempArr) {
-							if (!$_tempArr[0]) {
-								$_namesdata["firstName2"] = $_tempArr[0];
+						if (! $_cond1) {
+							// Reset conditions
+							$_cond1 = FALSE;
+							$_cond2 = FALSE;
+							
+							$_namesdata ["firstName1"] = strtolower ( $value1 ["firstnames"] );
+							$_namesdata ["firstName2"] = strtolower ( $value2 ["full names"] );
+							$_namesdata ["surname1"] = strtolower ( $value1 ["surname"] );
+							$_namesdata ["surname2"] = strtolower ( $value2 ["surname"] );
+							$_budata [0] = strtolower ( $value2 ["vip description"] );
+							$_budata [1] = strtolower ( $value2 ["cost centre description"] );
+							$_budata [2] = strtolower ( $value2 ["business unit description"] );
+							// : End
+							
+							// : Clean up variables
+							$_tempArr = preg_split ( "/\s/", $_namesdata ["firstName2"] );
+							if (! $_tempArr) {
+								if (! $_tempArr [0]) {
+									$_namesdata ["firstName2"] = $_tempArr [0];
+								}
 							}
-						}
-
-						$_tempArr = preg_split("/\s/",  $_namesdata["surname2"]);
-						if (!$_tempArr) {
-							if (!$_tempArr[0] && count($_tempArr > 1)) {
-								$_namesdata["surname2"] = $_tempArr[1];
-							} else if ($_tempArr[0] && count($_tempArr < 2) && count($_tempArr <> 0)) {
-								$_namesdata["surname2"] = $_tempArr[0];
-							} 
-						}
-						// : End
-						
-						// : Check if name matches
-						preg_match("/^" . $_namesdata["firstName1"] . ".*$/", $_namesdata["firstName2"], $_matches);
-						if ($_matches) {
-							preg_match("/^" . $_namesdata["surname1"] . ".*$/", $_namesdata["surname2"], $_matches2);
-							if ($_matches2) {
+							
+							$_tempArr = preg_split ( "/\s/", $_namesdata ["surname2"] );
+							if (! $_tempArr) {
+								if (! $_tempArr [0] && count ( $_tempArr > 1 )) {
+									$_namesdata ["surname2"] = $_tempArr [1];
+								} else if ($_tempArr [0] && count ( $_tempArr < 2 ) && count ( $_tempArr != 0 )) {
+									$_namesdata ["surname2"] = $_tempArr [0];
+								}
 							}
+							// : End
+							
+							// : Check if name matches
+							preg_match ( "/^" . $_namesdata ["firstName1"] . ".*$/", $_namesdata ["firstName2"], $_matches );
+							if ($_matches) {
+								preg_match ( "/^" . $_namesdata ["surname1"] . ".*$/", $_namesdata ["surname2"], $_matches2 );
+								if ($_matches2) {
+									$_cond1 = TRUE;
+								}
+							}
+							// : End
+							
+							// : If name match is found then determine which Business Units need to be added
+							if ($_cond1) {
+								
+							}
+							// : End
 						}
-						// : End
-						
-						// : If name match is found then determine which Business Units need to be added
-						
-						// : End
 					}
 				}
 			}
+			unset ($_db);
 			// : End
-			
 		} catch ( Exception $e ) {
-			$this->_errors[] = $e->getMessage();
+			$this->_errors [] = $e->getMessage ();
 			unset ( $_mysqlQueryMAX );
+			unset ($_db);
 			return FALSE;
 		}
 	}
@@ -187,8 +207,8 @@ class get_users_bu_from_list {
 	 * get_users_bu_from_list::ImportFromCSV($csvFile)
 	 * From supplied csv file save data into multidimensional array
 	 *
-	 * @param string: $csvFile
-	 * @param array: $_result
+	 * @param string: $csvFile        	
+	 * @param array: $_result        	
 	 */
 	private function ImportFromCSV($csvFile) {
 		try {
@@ -206,15 +226,15 @@ class get_users_bu_from_list {
 						}
 					}
 					fclose ( $_handle );
-						
+					
 					if (count ( $_data ) != 0) {
-	
+						
 						foreach ( $_data as $_key => $_value ) {
 							foreach ( $_value as $_keyA => $_valueA ) {
 								$_data [$_key] [$_keyA] = $this->stringHypenFix ( $_valueA );
 							}
 						}
-	
+						
 						return $_data;
 					} else {
 						$_msg = preg_replace ( "@%s@", $csvFile, self::FILE_EMPTY );
@@ -235,4 +255,4 @@ class get_users_bu_from_list {
 	}
 	// : End
 }
-new get_users_bu_from_list("test.csv","userlist.csv");
+new get_users_bu_from_list ( "test.csv", "userlist.csv" );

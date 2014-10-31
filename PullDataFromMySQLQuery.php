@@ -146,7 +146,7 @@ class PullDataFromMySQLQuery {
 	 * PullDataFromMySQLQuery::__construct()
 	 * Class constructor
 	 */
-	public function __construct($_tenant) {
+	public function __construct($_tenant, $_host) {
 		try {
 			if ($_tenant != "") {
 				$_inifile = dirname ( __FILE__ ) . self::DS . $this->_inifile;
@@ -154,6 +154,7 @@ class PullDataFromMySQLQuery {
 					$data = parse_ini_file ( $_inifile );
 					if ((array_key_exists ( "dbdsn", $data )) && (array_key_exists ( "dbuser", $data )) && (array_key_exists ( "dbpwd", $data ))) {
 						$_dsn = preg_replace ( "/%s/", $_tenant, $data ["dbdsn"] );
+						$_dsn = preg_replace ( "/%h/", $_tenant, $_dsn );
 						$this->_dbdsn = $_dsn;
 						$this->_dbuser = $data ["dbuser"];
 						$this->_dbpwd = $data ["dbpwd"];
