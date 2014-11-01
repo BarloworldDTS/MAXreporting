@@ -3,8 +3,7 @@
 error_reporting ( E_ALL );
 
 // : Includes
-require_once 'get_users_without_bu_groups.php';
-require_once 'Archive/FileParser.php';
+//require_once 'get_users_without_bu_groups.php';
 require_once 'PullDataFromMySQLQuery.php';
 // : End
 
@@ -38,6 +37,37 @@ class get_users_bu_from_list {
 	// : Variables
 	protected $_fileName;
 	protected $_errors;
+	protected $_data = array();
+	protected $_bu = array(
+			"Freight",
+			"Dedicated",
+			"Timber24",
+			"Energy",
+			"Ecosse",
+			"Specialised",
+			"Manline Mega"
+	);
+	protected $_bugroups = array(
+			"bwts_all" => array(0,1,2,3,4,5,6),
+			 "bwts" => array(1,4,5),
+			"manline" => array(0,3,5,6),
+			"mega" => array(6),
+			"freight" => array(0),
+			"dedicated" => array(1),
+			"energy" => array(3),
+			"specialised" => array(5),
+			"t24" => array(2)
+	);
+	/** May add these queries later to build db for new installations of the script
+	 * protected $_buildQueries = array(
+		"CREATE USER 'selenium_user'@'localhost';",
+		"SET PASSWORD FOR 'selenium_user'@'localhost' = PASSWORD('password');",
+		"CREATE DATABASE selenium_tests CHARACTER SET utf8;",
+		"CREATE TABLE selenium_test.business_unit (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name varchar(255) NOT NULL);",
+		"CREATE TABLE selenium_test.business_unit_group (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name varchar(255) NOT NULL, bu_id INT NOT NULL);",
+		"GRANT ALL PRIVILEGES ON `selenium_test`.* TO 'selenium_user'@'localhost' WITH GRANT OPTION;",
+		"FLUSH PRIVILEGES;"
+	);*/
 	
 	// : Public functions
 	// : Accessors
@@ -80,6 +110,33 @@ class get_users_bu_from_list {
 		$this->_fileName = $_setFile;
 	}
 	
+	/**
+	 * get_users_bu_from_list::getBUList()
+	 *
+	 * @param array: $this->_bu
+	 */
+	public function getBUList() {
+		return $this->_bu;
+	}
+	
+	/**
+	 * get_users_bu_from_list::getBUGroupsList()
+	 *
+	 * @param array: $this->_bugroups
+	 */
+	public function getBUGroupsList() {
+		return $this->_bugroups;
+	}
+	
+	/**
+	 * get_users_bu_from_list::getData()
+	 *
+	 * @param array: $this->_data
+	 */
+	public function getData() {
+		return $this->_data;
+	}
+	
 	// : End
 	
 	// : Magic
@@ -89,15 +146,12 @@ class get_users_bu_from_list {
 	 */
 	public function __construct($_file1, $_file2) {
 		try {
-			$_db = new PullDataFromMySQLQuery("selenium_test", "127.0.0.1");
-			$_bu_groups = (array) array();
-			$_result = $_db->getDataFromQuery("select name from business_unit_group")
 			// : using the filename given use the sub dir 'Data' of the script root path
 			$_fullPath1 = dirname ( __FILE__ ) . self::DS . "Data" . self::DS . $_file1;
 			$_fullPath2 = dirname ( __FILE__ ) . self::DS . "Data" . self::DS . $_file2;
 			
 			// Run query and get all users that do not belong to business unit groups and export results to a CSV file
-			$_maxusers = new get_users_without_bu_groups ( $_fullPath1 );
+			//$_maxusers = new get_users_without_bu_groups ( $_fullPath1 );
 			
 			// : Check if the above exported CSV file exists and import the data
 			if (file_exists ( $_fullPath1 )) {
@@ -114,7 +168,6 @@ class get_users_bu_from_list {
 			// Destroy object_maxusers
 			unset ( $_maxusers );
 			
-			$_data = ( array ) array ();
 			$_budata = ( array ) array ();
 			$_namesdata = ( array ) array (
 					"firstName1" => "",
@@ -128,6 +181,7 @@ class get_users_bu_from_list {
 			// : If both csv files imported and contain data then process the data
 			if ((isset ( $_csvdata1 )) && (! empty ( $_csvdata1 )) && (! empty ( $_csvdata2 )) && (isset ( $_csvdata2 ))) {
 				foreach ( $_csvdata1 as $key1 => $value1 ) {
+					$_cond1 = FALSE;
 					foreach ( $_csvdata2 as $key2 => $value2 ) {
 						// : Store all data into variables that need to be processed
 						if (! $_cond1) {
@@ -168,19 +222,96 @@ class get_users_bu_from_list {
 								preg_match ( "/^" . $_namesdata ["surname1"] . ".*$/", $_namesdata ["surname2"], $_matches2 );
 								if ($_matches2) {
 									$_cond1 = TRUE;
+									$this->_data[$value1["personalgroupid"]] = $value1;
 								}
 							}
 							// : End
 							
-							// : If name match is found then determine which Business Units need to be added
+							// : If name match is found then determine which Business Units need to be added for the user
 							if ($_cond1) {
-								
+								if ($_budata) {
+									if ($_budata[0] && $_budata[1]) {
+										preg_match("/bwts|dedicated|energy|t24|mega|kumkani|freight/", $_budata[0], $_matches);
+										if ($_matches) {
+											switch ($_matches[0]) {
+												case "bwts":
+													preg_match("/functional|management|cranes|specialised/", $_budata[0], $_submatches);
+													if ($_submatches){
+														switch ($_submatches) {
+															case "functional":
+																preg_match("/bwts|dedicated|energy|group|t24|mega/", $_budata[1], $_subsubmatches);
+																if ($_subsubmatches) {
+																	switch($_subsubmatches) {
+																		case "bwts":
+																		case "group":
+																			$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["bwts_all"];
+																			break;
+																		case "freight":
+																			$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["freight"];
+																			break;
+																		case "energy":
+																			$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["energy"];
+																			break;
+																		case "dedicated":
+																			$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["dedicated"];
+																			break;
+																		case "mega":
+																			$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["mega"];
+																			break;
+																		case "t24":
+																			$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["t24"];
+																			break;
+																		default:
+																			$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["bwts_all"];
+																			break;
+																	}
+																}
+																break;
+															case "management":
+																$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["bwts_all"];
+																break;
+															case "cranes":
+															case "specialised":
+																$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["specialised"];
+																break;
+															default:
+																$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["bwts_all"];
+																break;
+														}
+													}
+													break;
+												case "dedicated":
+													$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["dedicated"];
+													break;
+												case "energy":
+													$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["energy"];
+													break;
+												case "t24":
+													$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["t24"];
+													break;
+												case "mega":
+													$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["mega"];
+													break;
+												case "kumkani":
+													$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["specialised"];
+													break;
+												case "freight":
+													$this->_data[$value1["personalgroupid"]]["bugroups"] = $this->_bugroups["freight"];
+													break;
+												default:
+													$this->_data[$value1["personalgroupid"]]["bugroups"] = 0;
+													break;
+											} 
+										}
+									}
+								}
 							}
 							// : End
 						}
 					}
 				}
 			}
+			var_dump($this->_data);
 			unset ($_db);
 			// : End
 		} catch ( Exception $e ) {
@@ -255,4 +386,3 @@ class get_users_bu_from_list {
 	}
 	// : End
 }
-new get_users_bu_from_list ( "test.csv", "userlist.csv" );
