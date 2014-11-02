@@ -3,7 +3,6 @@
 error_reporting ( E_ALL );
 
 // : Includes
-//require_once 'get_users_without_bu_groups.php';
 require_once 'PullDataFromMySQLQuery.php';
 // : End
 
@@ -58,16 +57,6 @@ class get_users_bu_from_list {
 			"specialised" => array(5),
 			"t24" => array(2)
 	);
-	/** May add these queries later to build db for new installations of the script
-	 * protected $_buildQueries = array(
-		"CREATE USER 'selenium_user'@'localhost';",
-		"SET PASSWORD FOR 'selenium_user'@'localhost' = PASSWORD('password');",
-		"CREATE DATABASE selenium_tests CHARACTER SET utf8;",
-		"CREATE TABLE selenium_test.business_unit (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name varchar(255) NOT NULL);",
-		"CREATE TABLE selenium_test.business_unit_group (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name varchar(255) NOT NULL, bu_id INT NOT NULL);",
-		"GRANT ALL PRIVILEGES ON `selenium_test`.* TO 'selenium_user'@'localhost' WITH GRANT OPTION;",
-		"FLUSH PRIVILEGES;"
-	);*/
 	
 	// : Public functions
 	// : Accessors
@@ -311,9 +300,10 @@ class get_users_bu_from_list {
 					}
 				}
 			}
-			var_dump($this->_data);
+			
 			unset ($_db);
 			// : End
+			
 		} catch ( Exception $e ) {
 			$this->_errors [] = $e->getMessage ();
 			unset ( $_mysqlQueryMAX );
