@@ -27,6 +27,7 @@ include dirname ( __FILE__ ) . '/PullDataFromMySQLQuery.php';
 class PullFandVContractData {
 	// : Constants
 	const DS = DIRECTORY_SEPARATOR;
+	const DB_HOST = "192.168.1.19";
 	
 	// : Variables
 	protected $_mode;
@@ -213,7 +214,7 @@ class PullFandVContractData {
 		} 
 		$this->_mode = $_options["m"];
 		$_excelFileName = (string) date("Y-m-d") . "FandVContracts";
-		$sqlData = new PullDataFromMySQLQuery("max2");
+		$sqlData = new PullDataFromMySQLQuery("max2", self::DB_HOST);
 		$files = ( array ) array (
 				"truck",
 				"route",
