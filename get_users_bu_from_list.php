@@ -37,6 +37,7 @@ class get_users_bu_from_list {
 	protected $_fileName;
 	protected $_errors;
 	protected $_data = array();
+	protected $_nomatch = array();
 	protected $_bu = array(
 			"Freight",
 			"Dedicated",
@@ -118,6 +119,15 @@ class get_users_bu_from_list {
 	}
 	
 	/**
+	 * get_users_bu_from_list::getUsersWithNoMatch()
+	 *
+	 * @param array: $this->_nomatch
+	 */
+	public function getBUGroupsList() {
+		return $this->_nomatch;
+	}
+	
+	/**
 	 * get_users_bu_from_list::getData()
 	 *
 	 * @param array: $this->_data
@@ -140,7 +150,7 @@ class get_users_bu_from_list {
 			$_fullPath2 = dirname ( __FILE__ ) . self::DS . "Data" . self::DS . $_file2;
 			
 			// Run query and get all users that do not belong to business unit groups and export results to a CSV file
-			//$_maxusers = new get_users_without_bu_groups ( $_fullPath1 );
+			$_maxusers = new get_users_without_bu_groups ( $_fullPath1 );
 			
 			// : Check if the above exported CSV file exists and import the data
 			if (file_exists ( $_fullPath1 )) {
@@ -294,6 +304,8 @@ class get_users_bu_from_list {
 										}
 									}
 								}
+							} else {
+								$this->_nomatch[$value1["personalgroupid"]] = $value1;
 							}
 							// : End
 						}
