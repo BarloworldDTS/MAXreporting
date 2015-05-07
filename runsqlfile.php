@@ -18,6 +18,10 @@ include dirname(__FILE__) . '/PullDataFromMySQLQuery.php';
  * @see http://www.gnu.org/copyleft/gpl.html
  */
 class runsqlfile {
+    //: Constants
+    const DB_HOST = "192.168.1.19";
+    const DB_TENANT = "max2";
+
 	//: Variables
 
 	//: Public functions
@@ -117,11 +121,10 @@ class runsqlfile {
 	*/
 	public function __construct() {
 	// Construct an array with predefined date(s) which we will use to run a report
-		$options = getopt("f:d:");
+		$options = getopt("f:");
 		$sqlfile = $options["f"];
-		$tenant_id = $options["d"];
 		echo "SQL File: " . $sqlfile . ".sql" . PHP_EOL;
-		$sqlData = new PullDataFromMySQLQuery($tenant_id);
+		$sqlData = new PullDataFromMySQLQuery(self::DB_TENANT, self::DB_HOST);
 		$_data = $sqlData->getDataFromSQLFile($sqlfile . ".sql", "", "", FALSE);
 		if ($_data == FALSE) {
 			print_r($sqlData->getErrors());
