@@ -17,7 +17,36 @@ include dirname(__FILE__) . '/PullDataFromMySQLQuery.php';
 class runsqlfile {
     CONST TENANT_DB = "max2";
     CONST HOST_DB = "192.168.1.19";
-    CONST SQL_QUERY = "select ca.id, IF(count(tlc.tripLeg_id), 'YES', 'NO') as tripleg, IF(count(db.id), 'YES', 'NO') as is_debriefed, IF(ca.imageGroup_id, 'YES', 'NO') as ocr_images, IF((ca.sysproOrderPlaced && ca.sysproOrderPlacedDate), 'YES', 'NO') as sentToSyspro from udo_cargo as ca left join udo_triplegcargo as tlc on (tlc.cargo_id=ca.id) left join udo_debrief as db on (db.tripLeg_id=tlc.tripLeg_id) where ca.id=%d;";    
+    CONST SQL_QUERY = "SELECT
+ca.id,
+ca.tripNumber,
+tl.offloadingArrivalTime,
+count(tlc.tripLeg_id) AS triplegs,
+IF(db.debriefStartDate, 'YES', 'NO') AS is_debriefed,
+IF(ca.imageGroup_id, 'YES', 'NO') AS ocr_images,
+IF((ca.sysproOrderPlaced && ca.sysproOrderPlacedDate), 'YES', 'NO') AS sentToSyspro,
+IF((ca.companyInvoiceNumber), 'YES', 'NO') AS isInvoiced,
+(CASE
+WHEN (count(tlc.tripLeg_id) > 0)
+THEN (IF((tl.offloadingArrivalTime || db.debriefStartDate), 'NO', 'YES'))
+ELSE
+NULL
+END)
+as triplegDeleteable,
+(CASE
+WHEN (count(tlc.tripLeg_id) > 0)
+THEN (IF((tl.loadingArrivalTime && tl.loadingStarted && tl.loadingFinished && tl.timeLeft && tl.offloadingArrivalTime && tl.offloadingStarted && tl.offloadingCompleted && tl.kmsBegin && tl.kmsEnd), 'YES', 'NO'))
+ELSE
+NULL
+END)
+AS tripLegCompleted,
+(IF(!(ca.imageGroup_id = NULL && ca.companyInvoiceNumber = NULL && db.debriefStartDate = NULL && tl.offloadingArrivalTime = NULL), 'YES', 'NO')) AS isManuallyDeleteable,
+(IF((!ca.imageGroup_id && !db.debriefStartDate && !count(tlc.tripLeg_id)), 'YES', 'NO')) AS isDeleteableByScript
+FROM udo_cargo AS ca
+LEFT JOIN udo_triplegcargo AS tlc ON (tlc.cargo_id=ca.id)
+LEFT JOIN udo_tripleg AS tl ON (tl.id=tlc.tripLeg_id)
+LEFT JOIN udo_debrief AS db ON (db.tripLeg_id=tlc.tripLeg_id)
+WHERE ca.id=%d;";
     //: Variables
 
 	//: Public functions
