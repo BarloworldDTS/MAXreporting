@@ -116,7 +116,7 @@ group by ca.id";
                 
                 $_query = preg_replace("/%d/", $_id, self::SQL_QUERY);
                 $_data = $sqlData->getDataFromQuery($_query);
-		var_dump($_query);
+
         	if ($_data) {
                 foreach($_data as $_key => $_value) {
                         if (is_array($_value)) {
