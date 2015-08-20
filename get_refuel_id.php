@@ -90,7 +90,7 @@ where ron.orderNumber = '%s';";
 	//: End
     // : Private Functions
     /**
-     * scriptgenmax::importData()
+     * get_refuel_id::printUsage($_msg = null)
      * Prints the usage static property belonging to the class to output the usage of the script from the command line
      */
     private function printUsage($_msg = null)
