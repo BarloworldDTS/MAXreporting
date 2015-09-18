@@ -63,6 +63,7 @@ where (drv.beginDate IS NOT NULL) AND (drv.endDate IS NULL OR drv.endDate >= DAT
                 "get_trip_info.php -f Engen",
                 "",
 				"Result:",
+				"",
 				""
         );
 
@@ -75,36 +76,15 @@ where (drv.beginDate IS NOT NULL) AND (drv.endDate IS NULL OR drv.endDate >= DAT
 	*/
 	public function __construct() {
 	// Construct an array with predefined date(s) which we will use to run a report
-		$options = getopt("c:");
-        $sqlfile = $options["c"];
-        if ($sqlfile) {
-            $_ids = explode(",", $sqlfile);
-        } else {
-		$this->printUsage();
-        }
+		$options = getopt("t:f:");
+        $_truck = $options["t"];
+		$_fleet = $options["f"];
         
 	$sqlData = new PullDataFromMySQLQuery(self::TENANT_DB, self::HOST_DB);
         // Run query and return result
         if (is_array($_ids)) {
             
-		foreach($_ids as $_id) {
-                
-                $_query = preg_replace("/%d/", $_id, self::SQL_QUERY);
-                $_data = $sqlData->getDataFromQuery($_query);
 
-        	if ($_data) {
-                foreach($_data as $_key => $_value) {
-                        if (is_array($_value)) {
-                            foreach($_value as $_key2 => $_value2) {
-                                echo "$_key2: $_value2" . PHP_EOL;
-                            }
-                        }
-                    }
-                } else {
-                    echo "NO RESULT" . PHP_EOL;
-                }
-            }
-        }
 	}
 
 	/** runsqlfile::__destruct()
