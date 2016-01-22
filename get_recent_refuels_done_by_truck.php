@@ -60,8 +60,8 @@ ORDER BY rf.fillDateTime DESC LIMIT %d;";
 	        "",
 	        "Get last 10 refuels captured for truck 444010:",
 	        "",
-	        "get_recent_refuels_done_by_truck.php -t 444010 -l 10"
-		""
+	        "get_recent_refuels_done_by_truck.php -t 444010 -l 10",
+			""
     	);
 
 	//: Public functions
@@ -97,8 +97,13 @@ ORDER BY rf.fillDateTime DESC LIMIT %d;";
                 $_query = preg_replace("/%d/", $_result_limit, $_query);
                 
                 $_data = $sqlData->getDataFromQuery($_query);
-                var_dump($_data);
+
         		if ($_data) {
+					
+					// Clear the screen
+					system('clear');
+					system('clear');
+					
                     foreach($_data as $_key => $_value) {
                         echo $_x . PHP_EOL;
                         if (is_array($_value)) {
@@ -131,6 +136,7 @@ ORDER BY rf.fillDateTime DESC LIMIT %d;";
     private function printUsage($_msg = null)
     {
         // Clear the screen
+        system('clear');
         system('clear');
 
         // : Print a message before printing the usage is supplied
