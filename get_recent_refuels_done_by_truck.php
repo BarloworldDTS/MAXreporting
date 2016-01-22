@@ -48,9 +48,19 @@ ORDER BY rf.fillDateTime DESC LIMIT %d;";
 	        "Required options:",
 	        "-r: Truck Fleetnum",
 	        "",
+	        "Optional options:",
+	        "",
+	        "-l: integer",
+	        "",
         	"Example:",
 	        "",
+	        "Get last 5 refuels captured for truck 444010:",
+	        "",
 	        "get_recent_refuels_done_by_truck.php -t 444010",
+	        "",
+	        "Get last 10 refuels captured for truck 444010:",
+	        "",
+	        "get_recent_refuels_done_by_truck.php -t 444010 -l 10"
 		""
     	);
 
@@ -63,13 +73,18 @@ ORDER BY rf.fillDateTime DESC LIMIT %d;";
 	*/
 	public function __construct() {
 	// Construct an array with predefined date(s) which we will use to run a report
-		$options = getopt("t:");
+		$options = getopt("t:l:");
+		
+		$_result_limit = intval($options["l"]) ? intval($options["l"]) : SELF::DEFAULT_LIMIT;
+		
         $sqlfile = $options["t"];
         if ($sqlfile) {
             $_ids = explode(",", $sqlfile);
         } else {
 		$this->printUsage();
         }
+        
+        
 
         
         $sqlData = new PullDataFromMySQLQuery(self::TENANT_DB, self::HOST_DB);
@@ -79,7 +94,7 @@ ORDER BY rf.fillDateTime DESC LIMIT %d;";
             foreach($_ids as $_id) {
                 
                 $_query = preg_replace("/%s/", $_id, self::SQL_QUERY);
-                $_query = preg_replace("/%d/", self::DEFAULT_LIMIT, $_query);
+                $_query = preg_replace("/%d/", $_result_limit, $_query);
                 
                 $_data = $sqlData->getDataFromQuery($_query);
                 var_dump($_data);
