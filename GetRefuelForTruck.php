@@ -1,10 +1,10 @@
 #!/usr/bin/php
 <?php
 //: Includes
-/** MySQL query pull and return data class */
 include dirname(__FILE__) . '/PullDataFromMySQLQuery.php';
 //: End
 
+/***********************************************************************
  * GetRefuelForTruck.php
  *
  * @package GetRefuelForTruck
@@ -21,76 +21,226 @@ include dirname(__FILE__) . '/PullDataFromMySQLQuery.php';
  *       but WITHOUT ANY WARRANTY; without even the implied warranty of
  *       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *       GNU General Public License for more details.
- */
+ *
+ ***********************************************************************
+*/
+
 class GetRefuelForTruck {
+
+    // : Constants
     CONST TENANT_DB = "max2";
     CONST HOST_DB = "192.168.1.19";
-    CONST SQL_QUERY = "select r.id from udo_refuelordernumber as ron
-left join udo_refuel as r on (r.refuelOrderNumber_id=ron.id)
-where ron.orderNumber = '%s';";
-    	//: Variables
-    	private static $_usage = array(
-        	"GetRefuelForTruck - Get refuel orders for a month for one or more trucks from MAX",
-	        "",
-	        "Usage: GetRefuelForTruck.php -t fleetnum1,fleetnum2 -m 2016-05",
-	        "",
-	        "Arguments:",
-	        "",
-	        "Required options:",
-	        "-t fleetnum1, fleetnum2	(MAX fleet numbers of trucks)",
-		    "",
-		    "Optional options:",
-		    "-m YYYY-MM			        (Month to fetch refuel order, default is current month)",
-	        "",
-		    "Exclusive optional options:",
-            "-a                         (Fetch all refuels done by the truck(s) for the month",
-            "                           including incompleted refuels - this is the default)",
-            "",
-            "-A                         (Fetch all refuels done by the truck(s) for the month",
-            "                           only inclusive of completed refuels)",
-            "",
-            "-l                         (Fetch the last completed refuel for each truck for the month",
-		    "",
-        	"Example(s):",
-	        "",
-	        "GetRefuelForTruck.php -t fleetnum1,fleetnum2",
-		    "",
-		    "This will pull all refuel orders done within the current month for trucks",
-            "fleetnum1 and fleetnum2",
-		    "",
-	        "GetRefuelForTruck.php -t fleetnum1,fleetnum2 -m 2016-04",
-		    "",
-		    "This will pull all refuel orders done within the month of '2016-04' for trucks",
-            "fleetnum1 and fleetnum2",
-		    "",
-	        "GetRefuelForTruck.php -t fleetnum1,fleetnum2 -m 2016-04 -l",
-		    "",
-		    "This will fetch the last refuel order done within the month of '2016-04' for trucks",
-            "fleetnum1 and fleetnum2",
-		    ""
-    	);
+    CONST END_DATE_STR = " 00:00:00";
+    CONST SQL_LAST = "ORDER BY r.fillDateTime DESC LIMIT 1";
+    CONST SQL_ALL = "ORDER BY r.fillDateTime ASC";
+    CONST SQL_QUERY_MAIN = "SELECT r.id AS 'Refuel ID',
+    ron.orderNumber AS 'Refuel Order Number',
+    DATE_ADD(r.fillDateTime, INTERVAL 2 HOUR) AS 'Refuel DateTime',
+    l.name AS 'Refuel Point',
+    authorized AS 'Refuel Point Status',
+    t.fleetnum AS 'Truck',
+    CONCAT(pr.first_name, ' ', pr.last_name) AS 'Driver Fullnames',
+    r.odo AS 'Odometer Reading',
+    r.litres AS 'Litres',
+    r.cost AS 'Cost',
+    CONCAT(pc.first_name, ' ', pc.last_name) AS 'Created By',
+    r.time_created AS 'Time Created',
+    CONCAT(pm.first_name, ' ', pm.last_name) AS 'Last Modified By',
+    r.time_last_modified AS 'Time Last Modified'
+    FROM udo_refuel AS r
+    LEFT JOIN udo_refuelordernumber AS ron ON (ron.id = r.refuelOrderNumber_id)
+    LEFT JOIN udo_truck AS t ON (t.id = r.truck_id)
+    LEFT JOIN udo_driver AS dr ON (dr.id = r.driver_id)
+    LEFT JOIN person AS pr ON (pr.id = dr.person_id)
+    LEFT JOIN udo_point AS pt ON (pt.id = r.point_id)
+    LEFT JOIN udo_location AS l ON (l.id = pt._udo_Location_id)
+    LEFT JOIN permissionuser AS puc ON (puc.id = r.created_by)
+    LEFT JOIN permissionuser AS pum ON (pum.id = r.last_modified_by)
+    LEFT JOIN person AS pc ON (pc.id = puc.person_id)
+    LEFT JOIN person AS pm ON (pm.id = pum.person_id)
+    AND r.odo %odo% NULL
+    AND t.fleetnum LIKE '%truck%'
+    %end%";
+    // : End
+    
+    //: Variables
+    protected $sqlQuery;
+    protected $trucks;
+    private static $_usage = array(
+        "GetRefuelForTruck - Get refuel orders for a month for one or more trucks from MAX",
+	    "",
+        "Usage: GetRefuelForTruck.php -t fleetnum1,fleetnum2 -m 2016-02",
+        "",
+        "Arguments:",
+        "",
+        "Required options:",
+        "-t fleetnum1, fleetnum2	(MAX fleet numbers of trucks)",
+        "",
+        "Optional options:",
+        "-m YYYY-MM			        (Month to fetch refuel order, default is current month)",
+        "",
+        "Exclusive optional options:",
+        "-a: [All|Last[,Complete]]",
+        "-a All                     (Fetch all refuels done by the truck(s) for the month",
+        "                           including incompleted refuels - this is the default)",
+        "",
+        "-a All,Complete            (Fetch all refuels done by the truck(s) for the month",
+        "                           only inclusive of completed refuels)",
+        "",
+        "-a Last,Complete           (Fetch the last completed refuel for each truck for the month",
+        "",
+        "Example(s):",
+        "",
+        "GetRefuelForTruck.php -t fleetnum1,fleetnum2",
+        "",
+        "This will pull all refuel orders done within the current month for trucks",
+        "fleetnum1 and fleetnum2",
+        "",
+        "GetRefuelForTruck.php -t fleetnum1,fleetnum2 -m 2016-04",
+        "",
+        "This will pull all refuel orders done within the month of '2016-04' for trucks",
+        "fleetnum1 and fleetnum2",
+        "",
+        "GetRefuelForTruck.php -t fleetnum1,fleetnum2 -m 2016-04 -a Last,Complete",
+        "",
+        "This will fetch the last refuel order done within the month of '2016-04' for trucks",
+        "fleetnum1 and fleetnum2",
+        ""
+    );
 
-	//: Public functions
-	//: Accessors
+	//: Public Methods
+	
+	//: Getters
+    /**
+	 * GetRefuelForTruck::getSqlQuery()
+	 * Get the SQL Query that was built during the run of this script
+	 *
+	 * @param return mixed
+	 */
+	public function getSqlQuery()
+	{
+	    if ($this->sqlQuery && is_string($this->sqlQuery)) {
+	        return $this->sqlQuery;
+	    }
+	    return FALSE;
+	}
+	
+	/**
+	 * GetRefuelForTruck::getTrucks()
+	 * Get the trucks that were passed to the script
+	 * 
+	 * @param return mixed
+	 */
+    public function getTrucks()
+	{
+	    if ($this->getTrucks && is_array($this->getTrucks)) {
+	        return $this->getTrucks;
+	    }
+	    return FALSE;
+	}
+	//: End
+	
+	//: Setters
+	//: End
 
 	//: Magic
-	/** GetRefuelForTruck::__construct()
-	* Class constructor
-	*/
+	
+	/** 
+	 * GetRefuelForTruck::__construct()
+	 * Class constructor
+	 */
 	public function __construct() {
+	
 	// Construct an array with predefined date(s) which we will use to run a report
-		$options = getopt("t:m:l:A:a:");
-        $sqlfile = $options["r"];
-        if ($sqlfile) {
-            $_ids = explode(",", $sqlfile);
+	    $options = getopt("t:m:a:");
+	    $sqlQuery = self::SQL_QUERY_MAIN;
+        $monthDate = date("Y-m");
+        $trucks = (array) array();
+        
+        // : Check for required options
+        if (array_key_exists('t', $options)) {
+            $trucks = explode(',', $options['t']);
         } else {
-		$this->printUsage();
+		    $this->printUsage("-t switch argument is required. Refer to usage below");
         }
+        // : End
+        
+        // : Fetch month for which to fetch the refuels
+        if (array_key_exists('m', $options)) {
+        
+            $matches = array();
+            $opt = $options["m"];
+            
+            // Check value given for month matches the correct expected date format
+            if (preg_match('/^[1-9][0-9]{3}-[0-9]{2}$/', $opt, $matches)) {
+                $monthDate = $opt;
+            } else {
+                $this->printUsage("Value given for month is invalid. It must in the date format: YYYY-MM, e.g. " . strval(date("Y-m")));
+            }
+            
+        }
+        
+        // Finalise the string value of the start and stop date based on the determined month
+        $startDate = date("$monthDate-01" . self::END_DATE_STR);
+        $stopDate = date("$monthDate-t" . self::END_DATE_STR);
+        
+        // : End
+        
+        // : Make check for the presence of exclusive optional arguments
+
+        if (array_key_exists('a', $options)) {
+        
+            $opt = strtolower($options['a']);
+            
+            preg_match('/complete/i', $opt, $matches);
+            if ($matches) {
+                preg_replace('/%odo%/', "IS NOT", $sqlQuery);
+            } else {
+                preg_replace('/%odo%/', "IS", $sqlQuery);
+            }
+            
+            // : SQL query amendment based on action selected
+            
+            unset($matches);
+            preg_match('/all|last/', $opt, $matches);
+            
+            if ($matches) {
+            
+                $match = $matches[0];
+                
+                if ($match && is_string($match)) {
+                
+                    switch ($match) {
+                        case 'last': {
+                            preg_replace('/%end%/', self::SQL_LAST, $sqlQuery);
+                            break;
+                        }
+                        case 'all':
+                        default: {
+                            preg_replace('/%end%/', self::SQL_ALL, $sqlQuery);
+                        }
+                    }
+                    
+                    // Set object property `sqlQuery` to the built query, as it is now complete
+                    $this->sqlQuery = $sqlQuery;
+                                    
+                } else {
+                    $this->printUsage('Could not find a valid operation mode. Please see usage below:');
+                }
+            }
+            // : End
+            
+        } else {
+            $this->printUsage('Operation mode not given. Using default: fetch all including uncompleted refuels [All]');
+        }
+        // : End
 
         
         $sqlData = new PullDataFromMySQLQuery(self::TENANT_DB, self::HOST_DB);
         // Run query and return result
-        if (is_array($_ids)) {
+        if (is_array($trucks) && count($trucks) > 0) {
+        
+            $this->trucks = $trucks;
             $_x = 1;
             foreach($_ids as $_id) {
                 
